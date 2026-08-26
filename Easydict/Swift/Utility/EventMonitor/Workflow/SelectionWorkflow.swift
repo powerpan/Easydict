@@ -142,9 +142,12 @@ final class SelectionWorkflow {
             logInfo("AppleScript get selected text is empty, try to use force get selected text for browser")
             tryForceGetSelectedText(completion)
         } catch {
-            logError("Failed to get selected text from browser: \(error)")
+            logError("Failed to get selected text from browser category=apple_script")
             if !accessibilityFallback.isEmpty {
-                logInfo("Fallback to use Accessibility selected text: \(accessibilityFallback)")
+                logInfo(
+                    "Fallback to Accessibility selected text " +
+                        "characters=\(accessibilityFallback.count)"
+                )
                 let isEditable = systemUtility?.isFocusedTextField() ?? false
                 isSelectedTextEditable = isEditable
                 completion(.init(
@@ -215,7 +218,10 @@ final class SelectionWorkflow {
         Task {
             do {
                 let selectedText = try await systemUtility?.getSelectedText(strategy: .shortcut)
-                logInfo("Get selected text by simulated key success: \(selectedText ?? "")")
+                logInfo(
+                    "Get selected text by simulated key success " +
+                        "characters=\(selectedText?.count ?? 0)"
+                )
                 let isEditable = systemUtility?.isFocusedTextField() ?? false
                 isSelectedTextEditable = isEditable
                 completion(.init(
@@ -292,7 +298,10 @@ final class SelectionWorkflow {
             guard let self else { return }
             let trimmed = text?.trim() ?? ""
             if !trimmed.isEmpty {
-                logInfo("Get selected text by menu bar action copy success: \(trimmed)")
+                logInfo(
+                    "Get selected text by menu bar action copy success " +
+                        "characters=\(trimmed.count)"
+                )
                 let isEditable = systemUtility?.isFocusedTextField() ?? false
                 isSelectedTextEditable = isEditable
                 completion(.init(
@@ -303,8 +312,8 @@ final class SelectionWorkflow {
                 return
             }
 
-            if let error {
-                logError("Failed to get selected text by menu bar action copy: \(error)")
+            if error != nil {
+                logError("Get selected text failed strategy=menu_action category=accessibility")
             }
 
             if systemUtility?.hasEnabledCopyMenuItem() == false {
@@ -332,7 +341,7 @@ final class SelectionWorkflow {
         }
 
         if axError == .noValue {
-            logInfo("error: kAXErrorNoValue, unsupported Accessibility App: \(String(describing: application))")
+            logInfo("AX selection fallback considered category=no_value")
             logError("This error type allow force get selected text")
             return true
         }
@@ -366,19 +375,23 @@ final class SelectionWorkflow {
         ]
 
         if let bundleIDs = allowedAppErrorDict[axError], bundleIDs.contains(bundleID) {
-            logError("Allow force get selected text: \(axError), \(String(describing: application))")
+            logError(
+                "Allow force get selected text category=allowlisted_app " +
+                    "code=\(axError.rawValue)"
+            )
             return true
         }
 
         if EventMonitor.shared.actionType == .shortcutQuery {
             logInfo("Fallback to use force get selected text for shortcut query")
             logError(
-                "Maybe need to add it to allowed app error list dict: \(axError), \(String(describing: application))"
+                "Allow force get selected text category=shortcut_fallback " +
+                    "code=\(axError.rawValue)"
             )
             return true
         }
 
-        logInfo("After check axError: \(axError), not use force get selected text: \(String(describing: application))")
+        logInfo("Skip force get selected text category=unsupported code=\(axError.rawValue)")
         return false
     }
 
