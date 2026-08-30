@@ -119,6 +119,11 @@ struct ConfigurationItemRegistryTests {
                 .excludedRuntime
         )
         #expect(
+            ConfigurationItemRegistry.category(
+                forUserDefaultsKey: "inPlaceTranslationPrivacyDisclosureAcknowledged"
+            ) == .excludedRuntime
+        )
+        #expect(
             ConfigurationItemRegistry.category(forUserDefaultsKey: "future.unregistered.key") ==
                 .unsupported
         )
@@ -154,6 +159,47 @@ struct ConfigurationItemRegistryTests {
             "modifiers": [1, 2, 4],
         ]))
         #expect(entry.allowedValueKinds == [.data])
+    }
+
+    @Test("Includes every in-place translation preference as a portable setting")
+    func includesInPlaceTranslationPreferences() throws {
+        let expectedEntries: [(key: String, name: String, value: Any)] = [
+            (
+                "EZInPlaceScreenshotTranslationShortcutKey_keyHolder",
+                "shortcut.in-place-screenshot-translation",
+                Data([0x00, 0x01, 0xFF])
+            ),
+            (
+                "inPlaceTranslationServiceIdentifier",
+                "setting.in-place-translation-service",
+                "custom-openai:00000000-0000-4000-8000-000000000001"
+            ),
+            (
+                "inPlaceTranslationLiveUpdatesEnabled",
+                "setting.in-place-translation-live-updates",
+                NSNumber(value: true)
+            ),
+            (
+                "inPlaceTranslationPinned",
+                "setting.in-place-translation-pinned",
+                NSNumber(value: false)
+            ),
+        ]
+
+        for expected in expectedEntries {
+            let entry = try #require(
+                ConfigurationItemRegistry.entry(forUserDefaultsKey: expected.key)
+            )
+
+            #expect(entry.category == .portableSetting)
+            #expect(entry.descriptor.name == expected.name)
+            #expect(entry.accepts(expected.value))
+            #expect(!entry.isSchemeAutomatable)
+            #expect(
+                ConfigurationItemRegistry.entry(for: entry.descriptor)?.userDefaultsKey ==
+                    expected.key
+            )
+        }
     }
 
     @Test("Round trips service order and instance descriptors")

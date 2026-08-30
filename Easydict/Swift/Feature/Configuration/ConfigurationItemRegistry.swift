@@ -310,6 +310,8 @@ enum ConfigurationItemRegistry {
         ("EZConfiguration_kEnableMarkdownRendering", "enable-markdown-rendering"),
         ("EZConfiguration_kAutoSelectAllTextFieldText", "auto-select-input"),
         ("EZConfiguration_kPreferAppleScriptAPI", "prefer-applescript-api"),
+        ("inPlaceTranslationLiveUpdatesEnabled", "in-place-translation-live-updates"),
+        ("inPlaceTranslationPinned", "in-place-translation-pinned"),
     ]
 
     private static let stringSettings = [
@@ -326,6 +328,7 @@ enum ConfigurationItemRegistry {
         ("polishAndReplaceAdditionalPrompt", "polish-replace-prompt"),
         ("httpPort", "http-server-port"),
         ("minClassicalChineseTextDetectLength", "classical-chinese-min-length"),
+        ("inPlaceTranslationServiceIdentifier", "in-place-translation-service"),
     ]
 
     private static let integerSettings = [
@@ -346,6 +349,7 @@ enum ConfigurationItemRegistry {
         ("EZSelectionShortcutKey_keyHolder", "selection"),
         ("EZToggleAutoSelectTextShortcutKey_keyHolder", "toggle-selection"),
         ("EZSnipShortcutKey_keyHolder", "screenshot"),
+        ("EZInPlaceScreenshotTranslationShortcutKey_keyHolder", "in-place-screenshot-translation"),
         ("EZInputShortcutKey_keyHolder", "input"),
         ("EZScreenshotOCRShortcutKey_keyHolder", "silent-screenshot-ocr"),
         ("EZShowMiniShortcutKey_keyHolder", "mini-window"),
@@ -380,6 +384,7 @@ enum ConfigurationItemRegistry {
         "EZConfiguration_kFirstLaunch",
         "EZConfiguration_kScreenVisibleFrameKey",
         "EZConfiguration_kFormerMiniScreenVisibleFrameKey",
+        "inPlaceTranslationPrivacyDisclosureAcknowledged",
     ])
     private static let excludedRuntimePrefixes = [
         "MASPreferences", "NSWindow Frame", "NSStatusItem", "SU", "SKPurchase",
