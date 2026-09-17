@@ -57,6 +57,10 @@ open class QueryService: NSObject {
 
     open var autoCopyTranslatedTextBlock: ((QueryResult, Error?) -> ())?
 
+    /// Whether this service can answer a card-scoped question without mutating its
+    /// normal translation result. Providers opt in explicitly.
+    open var supportsContextualQuestions: Bool { false }
+
     open var queryModel: QueryModel {
         didSet {
             result?.queryModel = queryModel

@@ -220,6 +220,10 @@ public class QueryResult: NSObject {
     /// new query so a fresh result tracks the global setting again.
     var markdownRenderingOverride: Bool?
 
+    /// Transient card-level question state. It deliberately lives on the result so
+    /// view refreshes preserve an in-flight answer, while `reset()` clears all content.
+    var contextualQuestionSession: ContextualQuestionSession?
+
     var translatedResults: [String]? {
         get {
             translatedResultsLock.lock()
@@ -280,7 +284,7 @@ public class QueryResult: NSObject {
 
     /// Returns property names that should be ignored by MJExtension.
     class func mj_ignoredPropertyNames() -> [String] {
-        []
+        ["contextualQuestionSession"]
     }
 
     /// Flips the Markdown rendering decision for this result, overriding the
@@ -291,6 +295,8 @@ public class QueryResult: NSObject {
 
     /// Resets the result to its initial state.
     func reset() {
+        contextualQuestionSession?.reset()
+        contextualQuestionSession = nil
         queryModel = QueryModel()
         translatedResults = nil
         wordResult = nil

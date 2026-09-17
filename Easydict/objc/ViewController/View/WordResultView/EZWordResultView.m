@@ -938,6 +938,10 @@ static NSString *const kMDictEntryURIScheme = @"mdict-entry";
         make.width.height.bottom.equalTo(audioButton);
     }];
 
+    __block NSView *lastToolbarButton = result.showReplaceButton
+        ? (NSView *)replaceTextButton
+        : (NSView *)linkButton;
+
     // Markdown rendering toggle, only on streaming (AI/LLM) services.
     if ([self.service isStream]) {
         EDMarkdownToggleButton *markdownToggleButton = [[EDMarkdownToggleButton alloc] init];
@@ -965,10 +969,83 @@ static NSString *const kMDictEntryURIScheme = @"mdict-entry";
         };
 
         [markdownToggleButton mas_makeConstraints:^(MASConstraintMaker *make) {
-            NSView *leftAnchor = result.showReplaceButton ? (NSView *)replaceTextButton : (NSView *)linkButton;
-            make.left.equalTo(leftAnchor.mas_right).offset(buttonPadding);
+            make.left.equalTo(lastToolbarButton.mas_right).offset(buttonPadding);
             make.width.height.bottom.equalTo(audioButton);
         }];
+        lastToolbarButton = markdownToggleButton;
+    }
+
+    if (self.service.supportsContextualQuestions) {
+        EDContextualQuestionSession *session = result.contextualQuestionSession;
+        if (!session) {
+            session = [[EDContextualQuestionSession alloc] init];
+            result.contextualQuestionSession = session;
+        }
+
+        EDContextualQuestionButton *questionButton = [[EDContextualQuestionButton alloc] init];
+        [questionButton bindTo:session];
+        questionButton.questionAvailable = result.isStreamFinished &&
+            result.error == nil && hasTranslatedText;
+        questionButton.mas_key = @"result_contextualQuestionButton";
+        [self addSubview:questionButton];
+
+        [questionButton mas_makeConstraints:^(MASConstraintMaker *make) {
+            make.left.equalTo(lastToolbarButton.mas_right).offset(buttonPadding);
+            make.width.height.bottom.equalTo(audioButton);
+        }];
+
+        EDContextualQuestionView *questionView =
+            [[EDContextualQuestionView alloc] initWithSession:session
+                                                     service:self.service
+                                                      result:result];
+        questionView.availableWidth = MAX(self.width - kHorizontalMargin_8 * 2, 120);
+        questionView.mas_key = @"result_contextualQuestionView";
+        [self addSubview:questionView];
+
+        CGFloat panelSpacing = 6;
+        CGFloat initialPanelHeight = questionView.preferredHeight;
+        [questionView mas_makeConstraints:^(MASConstraintMaker *make) {
+            make.top.equalTo(audioButton.mas_bottom).offset(panelSpacing);
+            make.left.right.inset(kHorizontalMargin_8);
+            make.height.mas_equalTo(initialPanelHeight);
+        }];
+
+        CGFloat baseHeight = height;
+        if (initialPanelHeight > 0) {
+            height += panelSpacing + initialPanelHeight;
+            _viewHeight = height;
+        }
+
+        mm_weakify(self);
+        __weak EDContextualQuestionView *weakQuestionView = questionView;
+        questionView.heightDidChange = ^(CGFloat panelHeight) {
+            mm_strongify(self);
+            EDContextualQuestionView *strongQuestionView = weakQuestionView;
+            if (!self || !strongQuestionView || self.result != result ||
+                strongQuestionView.superview != self) {
+                return;
+            }
+
+            [strongQuestionView mas_updateConstraints:^(MASConstraintMaker *make) {
+                make.height.mas_equalTo(panelHeight);
+            }];
+
+            CGFloat newViewHeight = baseHeight;
+            if (panelHeight > 0) {
+                newViewHeight += panelSpacing + panelHeight;
+            }
+            self->_viewHeight = newViewHeight;
+
+            if (self.updateViewHeightBlock) {
+                self.updateViewHeightBlock(newViewHeight);
+            }
+
+            EZBaseQueryWindow *queryWindow =
+                [self.window isKindOfClass:[EZBaseQueryWindow class]]
+                ? (EZBaseQueryWindow *)self.window
+                : nil;
+            [queryWindow.queryViewController updateCellWithResult:result reloadData:NO];
+        };
     }
 
     // webView height need time to calculate, and the value will be called back later.

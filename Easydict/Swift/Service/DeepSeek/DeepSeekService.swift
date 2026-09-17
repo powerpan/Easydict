@@ -16,7 +16,7 @@ import Foundation
 /// streaming pipeline as a model-agnostic per-service setting, so current
 /// and future DeepSeek models opt in without code changes.
 @objc(EZDeepSeekService)
-class DeepSeekService: OpenAIService {
+class DeepSeekService: OpenAIService, ContextualQuestionStreaming {
     // MARK: Public
 
     public override func cancelStream() {
@@ -40,6 +40,8 @@ class DeepSeekService: OpenAIService {
     override var defaultModels: [String] {
         DeepSeekModel.allCases.map(\.rawValue)
     }
+
+    override var supportsContextualQuestions: Bool { true }
 
     override var defaultModel: String {
         DeepSeekModel.deepseekV4Flash.rawValue
@@ -73,6 +75,36 @@ class DeepSeekService: OpenAIService {
         to: Language
     )
         -> AsyncThrowingStream<String, Error> {
+        let queryType = queryType(text: text, from: from, to: to)
+        let chatQueryParam = ChatQueryParam(
+            text: text,
+            sourceLanguage: from,
+            targetLanguage: to,
+            queryType: queryType,
+            enableSystemPrompt: true
+        )
+        return streamContent(
+            messages: chatMessageDicts(chatQueryParam),
+            registerAsTranslationTask: true
+        )
+    }
+
+    func contextualQuestionStream(
+        _ request: ContextualQuestionRequest
+    )
+        -> AsyncThrowingStream<String, Error> {
+        streamContent(messages: request.messages, registerAsTranslationTask: false)
+    }
+
+    // MARK: Private
+
+    private var currentTask: Task<(), Never>?
+
+    private func streamContent(
+        messages: [ChatMessage],
+        registerAsTranslationTask: Bool
+    )
+        -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             guard let url = try? ServiceEndpointSecurityPolicy.validatedURL(endpoint) else {
                 continuation.finish(
@@ -91,23 +123,15 @@ class DeepSeekService: OpenAIService {
                 return
             }
 
-            if let currentTask, !currentTask.isCancelled {
+            if registerAsTranslationTask, let currentTask, !currentTask.isCancelled {
                 currentTask.cancel()
             }
 
             let task = Task {
                 do {
-                    let queryType = queryType(text: text, from: from, to: to)
-                    let chatQueryParam = ChatQueryParam(
-                        text: text,
-                        sourceLanguage: from,
-                        targetLanguage: to,
-                        queryType: queryType,
-                        enableSystemPrompt: true
-                    )
                     let request = try makeChatRequest(
                         url: url,
-                        messages: chatMessageDicts(chatQueryParam)
+                        messages: messages
                     )
 
                     let (asyncBytes, response) = try await ServiceEndpointRequestSecurity.bytes(
@@ -125,16 +149,14 @@ class DeepSeekService: OpenAIService {
                 }
             }
 
-            currentTask = task
+            if registerAsTranslationTask {
+                currentTask = task
+            }
             continuation.onTermination = { _ in
                 task.cancel()
             }
         }
     }
-
-    // MARK: Private
-
-    private var currentTask: Task<(), Never>?
 
     private func makeChatRequest(url: URL, messages: [ChatMessage]) throws -> URLRequest {
         let effort = reasoningEffort

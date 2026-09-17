@@ -7,6 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C01700000000000000000001 /* ContextualQuestionRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C01710000000000000000001 /* ContextualQuestionRequest.swift */; };
+		C01700000000000000000002 /* ContextualQuestionSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C01710000000000000000002 /* ContextualQuestionSession.swift */; };
+		C01700000000000000000003 /* ContextualQuestionButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = C01710000000000000000003 /* ContextualQuestionButton.swift */; };
+		C01700000000000000000004 /* ContextualQuestionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C01710000000000000000004 /* ContextualQuestionView.swift */; };
+		C01700000000000000000011 /* ContextualQuestionSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C01710000000000000000011 /* ContextualQuestionSessionTests.swift */; };
+		C01700000000000000000012 /* DeepSeekContextualQuestionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C01710000000000000000012 /* DeepSeekContextualQuestionTests.swift */; };
 		A83100000000000000000001 /* FrameChangeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83200000000000000000001 /* FrameChangeDetector.swift */; };
 		A83100000000000000000002 /* RegionFrameSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83200000000000000000002 /* RegionFrameSource.swift */; };
 		A83100000000000000000003 /* ScreenCaptureKitRegionFrameSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83200000000000000000003 /* ScreenCaptureKitRegionFrameSource.swift */; };
@@ -687,6 +693,12 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		C01710000000000000000001 /* ContextualQuestionRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextualQuestionRequest.swift; sourceTree = "<group>"; };
+		C01710000000000000000002 /* ContextualQuestionSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextualQuestionSession.swift; sourceTree = "<group>"; };
+		C01710000000000000000003 /* ContextualQuestionButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextualQuestionButton.swift; sourceTree = "<group>"; };
+		C01710000000000000000004 /* ContextualQuestionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextualQuestionView.swift; sourceTree = "<group>"; };
+		C01710000000000000000011 /* ContextualQuestionSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextualQuestionSessionTests.swift; sourceTree = "<group>"; };
+		C01710000000000000000012 /* DeepSeekContextualQuestionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepSeekContextualQuestionTests.swift; sourceTree = "<group>"; };
 		A83200000000000000000001 /* FrameChangeDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Capture/FrameChangeDetector.swift; sourceTree = "<group>"; };
 		A83200000000000000000002 /* RegionFrameSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Capture/RegionFrameSource.swift; sourceTree = "<group>"; };
 		A83200000000000000000003 /* ScreenCaptureKitRegionFrameSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Capture/ScreenCaptureKitRegionFrameSource.swift; sourceTree = "<group>"; };
@@ -2933,6 +2945,7 @@
 		03C408F72EF5CAFB0025A1F0 /* Service */ = {
 			isa = PBXGroup;
 			children = (
+				C01710000000000000000012 /* DeepSeekContextualQuestionTests.swift */,
 				7A2508250000000000000002 /* TextReplacementServiceTests.swift */,
 				7A2508250000000000000004 /* TextReplacementStreamTests.swift */,
 				FA76B47A0150434485FCBBAD /* MDictReaderTests.swift */,
@@ -3634,6 +3647,7 @@
 		967712EB2B5B93E200105E0F /* Feature */ = {
 			isa = PBXGroup;
 			children = (
+				C01720000000000000000001 /* ContextualQuestion */,
 				A83500000000000000000001 /* InPlaceScreenshotTranslation */,
 				0328D0792D7D42520050B2C7 /* Screenshot */,
 				03A00D862E616D3D001A4D82 /* ActionManager */,
@@ -3645,6 +3659,17 @@
 				967712EC2B5B941600105E0F /* Shortcut */,
 			);
 			path = Feature;
+			sourceTree = "<group>";
+		};
+		C01720000000000000000001 /* ContextualQuestion */ = {
+			isa = PBXGroup;
+			children = (
+				C01710000000000000000001 /* ContextualQuestionRequest.swift */,
+				C01710000000000000000002 /* ContextualQuestionSession.swift */,
+				C01710000000000000000003 /* ContextualQuestionButton.swift */,
+				C01710000000000000000004 /* ContextualQuestionView.swift */,
+			);
+			path = ContextualQuestion;
 			sourceTree = "<group>";
 		};
 		967712EC2B5B941600105E0F /* Shortcut */ = {
@@ -3688,6 +3713,7 @@
 		BE5912DE778CDCD8495CA4E5 /* Feature */ = {
 			isa = PBXGroup;
 			children = (
+				C01720000000000000000002 /* ContextualQuestion */,
 				A83500000000000000000002 /* InPlaceScreenshotTranslation */,
 				7A2601010000000000000002 /* ConfigurationBackupCodecTests.swift */,
 				7A2601020000000000000002 /* ConfigurationBackupServiceTests.swift */,
@@ -3699,6 +3725,14 @@
 				030732CB2F24862A0001382A /* OCR */,
 			);
 			path = Feature;
+			sourceTree = "<group>";
+		};
+		C01720000000000000000002 /* ContextualQuestion */ = {
+			isa = PBXGroup;
+			children = (
+				C01710000000000000000011 /* ContextualQuestionSessionTests.swift */,
+			);
+			path = ContextualQuestion;
 			sourceTree = "<group>";
 		};
 		C0DEC11E0003000000000001 /* CodexCLI */ = {
@@ -4355,6 +4389,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C01700000000000000000011 /* ContextualQuestionSessionTests.swift in Sources */,
+				C01700000000000000000012 /* DeepSeekContextualQuestionTests.swift in Sources */,
 				A83300000000000000000001 /* InPlaceFrameChangeDetectorTests.swift in Sources */,
 				A83300000000000000000002 /* InPlaceOCRBlockBuilderTests.swift in Sources */,
 				A83300000000000000000003 /* InPlaceOCRBlockMatcherTests.swift in Sources */,
@@ -4425,6 +4461,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C01700000000000000000001 /* ContextualQuestionRequest.swift in Sources */,
+				C01700000000000000000002 /* ContextualQuestionSession.swift in Sources */,
+				C01700000000000000000003 /* ContextualQuestionButton.swift in Sources */,
+				C01700000000000000000004 /* ContextualQuestionView.swift in Sources */,
 				A83100000000000000000001 /* FrameChangeDetector.swift in Sources */,
 				A83100000000000000000002 /* RegionFrameSource.swift in Sources */,
 				A83100000000000000000003 /* ScreenCaptureKitRegionFrameSource.swift in Sources */,
