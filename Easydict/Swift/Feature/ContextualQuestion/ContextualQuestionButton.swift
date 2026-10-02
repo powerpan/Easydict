@@ -43,6 +43,8 @@ final class ContextualQuestionButton: EZHoverButton {
 
         session.$isExpanded
             .removeDuplicates()
+            // @Published emits before storage changes; render from the committed state.
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.applyVisualState()
             }

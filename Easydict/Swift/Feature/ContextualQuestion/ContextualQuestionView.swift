@@ -229,27 +229,33 @@ final class ContextualQuestionView: NSView, NSTextFieldDelegate {
     }
 
     private func bindSession() {
+        // Rendering reads several session properties. Defer @Published's willSet
+        // notifications so visibility, controls and height use the same committed state.
         session.$isExpanded
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] expanded in
                 self?.render()
                 guard expanded else { return }
                 DispatchQueue.main.async { [weak self] in
-                    guard let self else { return }
+                    guard let self, session.isExpanded else { return }
                     window?.makeFirstResponder(inputField)
                 }
             }
             .store(in: &cancellables)
 
         session.$phase
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.render() }
             .store(in: &cancellables)
 
         session.$answer
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.render() }
             .store(in: &cancellables)
 
         session.$failureMessage
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.render() }
             .store(in: &cancellables)
 
