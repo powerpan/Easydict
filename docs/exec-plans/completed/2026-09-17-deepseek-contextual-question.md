@@ -2,7 +2,7 @@
 
 **Status:** completed
 **Created:** 2026-09-17
-**Updated:** 2026-09-17
+**Updated:** 2026-10-02
 **Owner:** Easydict contributors
 **Links:** `../../../Easydict/Swift/Service/DeepSeek/DeepSeekService.swift`
 
@@ -138,6 +138,8 @@
 - 2026-09-17：重复提交直接拒绝且不改变运行中 session 的 phase，避免旧请求仍运行时错误放行第三个请求。
 - 2026-09-17：将 session 加入 `QueryResult.mj_ignoredPropertyNames()`，明确阻止临时问答状态进入对象转换或持久化边界。
 - 2026-09-17：问答错误只显示本地安全分类，不回显 Provider payload，也不 fallback 或切换服务。
+- 2026-10-02：运行时诊断确认，初始 `height == 0` 约束会与手工布局子视图的 autoresizing-mask 约束竞争；改由 `ContextualQuestionView.intrinsicContentSize` 单独提供面板高度，并关闭其手工布局子视图的 mask-to-constraint 转换。
+- 2026-10-02：收起面板前主动结束输入框 field editor，避免零高度面板外残留蓝色 focus ring；草稿仍由 session 保存，收起不清空内容或取消请求。
 
 ## 进度记录
 
@@ -146,3 +148,5 @@
 - 2026-09-17：完成卡片工具栏按钮、输入/停止/复制、Markdown 回答、动态高度和窗口宽度重排。
 - 2026-09-17：独立测试执行者补充 9 项单元测试，并据测试反馈修复重复提交状态破坏。
 - 2026-09-17：完成六语文案、工程引用、Debug/Release 构建、focused tests 和相关回归；计划归档。
+- 2026-10-02：复现点击后输入区被裁切的 AppKit 约束冲突；运行时日志显示零高度面板约束被系统打破。
+- 2026-10-02：修复动态高度所有权和收起时的 field-editor 残留；Debug 构建、Swift parse、SwiftFormat lint、`git diff --check` 通过，并在调试应用中确认展开态输入框完整显示且不再产生原约束冲突。

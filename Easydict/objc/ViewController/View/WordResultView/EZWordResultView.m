@@ -1007,7 +1007,6 @@ static NSString *const kMDictEntryURIScheme = @"mdict-entry";
         [questionView mas_makeConstraints:^(MASConstraintMaker *make) {
             make.top.equalTo(audioButton.mas_bottom).offset(panelSpacing);
             make.left.right.inset(kHorizontalMargin_8);
-            make.height.mas_equalTo(initialPanelHeight);
         }];
 
         CGFloat baseHeight = height;
@@ -1025,10 +1024,6 @@ static NSString *const kMDictEntryURIScheme = @"mdict-entry";
                 strongQuestionView.superview != self) {
                 return;
             }
-
-            [strongQuestionView mas_updateConstraints:^(MASConstraintMaker *make) {
-                make.height.mas_equalTo(panelHeight);
-            }];
 
             CGFloat newViewHeight = baseHeight;
             if (panelHeight > 0) {

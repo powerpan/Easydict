@@ -44,3 +44,21 @@
 
 - 使用有效私有 DeepSeek 凭据完成手工 UI/网络矩阵；不要把凭据、问题、原文或回答加入日志、截图或提交。
 - 多轮聊天、其他 Provider 和持久问答历史仍不在本次范围内。
+
+## 2026-10-02 | 修复提问输入区展开与收起残影
+
+### 问题
+
+点击 DeepSeek 卡片的提问按钮后，输入区会被零高度约束裁掉；再次收起时，窗口共享 field editor 的蓝色焦点环可能在卡片底部残留一小段。
+
+### 修复
+
+- 由 `ContextualQuestionView.intrinsicContentSize` 统一声明动态面板高度，移除 Objective-C 宿主对同一高度的重复 Masonry 约束和更新。
+- 对面板内手工 frame 布局的子视图关闭 autoresizing-mask 约束转换，避免其与零高度面板竞争。
+- 收起前结束输入框的 field editor，再隐藏面板并把 intrinsic height 更新为零，避免焦点环残影。
+
+### 验证
+
+- 运行时复现日志确认原因为 `result_contextualQuestionView.height == 0` 与子视图 autoresizing-mask 约束冲突；修复后的调试运行不再出现该冲突。
+- 调试应用中确认展开态显示完整输入框和发送按钮。
+- `git diff --check`、Swift parse、变更文件 SwiftFormat lint 和 Debug build 通过；仅保留仓库既有 SwiftLint 警告。

@@ -40,6 +40,10 @@ final class ContextualQuestionView: NSView, NSTextFieldDelegate {
 
     override var isFlipped: Bool { true }
 
+    override var intrinsicContentSize: NSSize {
+        NSSize(width: NSView.noIntrinsicMetric, height: preferredHeight)
+    }
+
     @objc private(set) var preferredHeight: CGFloat = 0
 
     @objc var heightDidChange: ((CGFloat) -> ())?
@@ -174,6 +178,11 @@ final class ContextualQuestionView: NSView, NSTextFieldDelegate {
     private func configure() {
         wantsLayer = true
 
+        // `layoutContent()` owns these frames. Prevent AppKit from translating their
+        // autoresizing masks into constraints that compete with the panel's height.
+        [inputField, actionButton, answerHeader, answerCopyButton, answerLabel, statusLabel]
+            .forEach { $0.translatesAutoresizingMaskIntoConstraints = false }
+
         inputField.delegate = self
         inputField.placeholderString = String(localized: "contextual_question.input.placeholder")
         inputField.font = .systemFont(ofSize: 13)
@@ -254,7 +263,16 @@ final class ContextualQuestionView: NSView, NSTextFieldDelegate {
     }
 
     private func render() {
-        isHidden = !session.isExpanded
+        if session.isExpanded {
+            isHidden = false
+        } else {
+            // NSTextField uses the window's shared field editor. Leaving it active while
+            // collapsing can paint a focus-ring sliver outside the zero-height panel.
+            if inputField.currentEditor() != nil {
+                window?.makeFirstResponder(nil)
+            }
+            isHidden = true
+        }
         inputField.isEnabled = !session.isRunning
         inputField.stringValue = session.draft
 
@@ -330,6 +348,7 @@ final class ContextualQuestionView: NSView, NSTextFieldDelegate {
         }
 
         preferredHeight = newHeight
+        invalidateIntrinsicContentSize()
         needsLayout = true
         heightDidChange?(newHeight)
     }
