@@ -319,6 +319,8 @@ public class QueryResult: NSObject {
         isStreamFinished = true
         manualShow = false
         htmlString = nil
+        htmlStrings = nil
+        innerTexts = nil
         copiedText = nil
         didFinishLoadingHTMLBlock = nil
         webViewManager.reset()

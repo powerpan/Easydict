@@ -18,8 +18,6 @@ import Testing
 /// Verifies the shared service endpoint boundary without resolving hostnames or contacting a server.
 @Suite("Service Endpoint Security Policy", .serialized, .tags(.unit))
 struct ServiceEndpointSecurityPolicyTests {
-    // MARK: Internal
-
     @Test(
         "Allows HTTPS and exact HTTP loopback hosts",
         arguments: [
@@ -443,9 +441,73 @@ struct ServiceEndpointSecurityPolicyTests {
         #expect(request.httpMethod == "POST")
     }
 
-    // MARK: Private
+    @Test("Anki rejects unsafe endpoints at scheme, restore, and field lookup boundaries")
+    func rejectsUnsafeAnkiEndpointsBeforeFieldLookup() async throws {
+        let previous = snapshotDefaults(keys: ["ankiConnectEndpoint", "ankiConnectModel"])
+        defer { restoreDefaults(previous) }
+        Defaults[.ankiConnectModel] = "endpoint-policy-test-model"
+        let endpoints = [
+            "http://api.endpoint-policy.invalid/anki",
+            "https://user:password@localhost:65529/anki",
+        ]
+        #expect(URLProtocol.registerClass(EndpointProbeURLProtocol.self))
+        defer { URLProtocol.unregisterClass(EndpointProbeURLProtocol.self) }
 
-    // MARK: - Helpers
+        for endpoint in endpoints {
+            EndpointProbeURLProtocol.configure(matching: [endpoint, "https://localhost:65529/anki"])
+            let scheme = writeEndpointViaScheme(key: "ankiConnectEndpoint", value: endpoint)
+            let restored = try prepareEndpointRestore(key: "ankiConnectEndpoint", value: endpoint)
+            #expect(!scheme.isSuccess)
+            #expect(restored.preview.skippedUnsafeEndpointCount == 1)
+            #expect(restored.resolvedItems.isEmpty)
+
+            // Legacy storage can bypass UI validation, but it must not reach the request sink.
+            Defaults[.ankiConnectEndpoint] = endpoint
+            let response: (Bool, [String]) = await withCheckedContinuation { continuation in
+                AnkiConnectClient.shared.fetchModelFieldNames { success, fields, _ in
+                    continuation.resume(returning: (success, fields))
+                }
+            }
+            #expect(!response.0)
+            #expect(response.1.isEmpty)
+            #expect(EndpointProbeURLProtocol.requestCount == 0)
+        }
+
+        let localhost = "http://127.0.0.1:8765"
+        let restored = try prepareEndpointRestore(key: "ankiConnectEndpoint", value: localhost)
+        #expect(restored.preview.skippedUnsafeEndpointCount == 0)
+        #expect(restored.resolvedItems.map(\.entry.userDefaultsKey) == ["ankiConnectEndpoint"])
+        #expect(!writeEndpointViaScheme(key: "ankiConnectEndpoint", value: localhost).isSuccess)
+    }
+
+    @Test("Gemini compatibility requests retain the shared endpoint security boundary")
+    func protectsGeminiCompatibilityEndpoint() async throws {
+        let service = GeminiService()
+        service.uuid = UUID().uuidString
+        service.result = QueryResult()
+        defer { resetServiceDefaults(service) }
+        #expect(
+            service.defaultEndpoint ==
+                "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+        )
+        let endpoint = "http://api.endpoint-policy.invalid/gemini"
+        Defaults[service.endpointKey] = endpoint
+        Defaults[service.apiKeyKey] = "credential-canary"
+        EndpointProbeURLProtocol.configure(matching: [endpoint])
+        #expect(URLProtocol.registerClass(EndpointProbeURLProtocol.self))
+        defer { URLProtocol.unregisterClass(EndpointProbeURLProtocol.self) }
+
+        let error = await terminalError(from: service.contentStreamTranslate("hello", from: .english, to: .japanese))
+
+        #expect((error as? QueryError)?.type == .parameter)
+        #expect(EndpointProbeURLProtocol.requestCount == 0)
+    }
+}
+
+// MARK: - ServiceEndpointSecurityPolicyTests + Helpers
+
+extension ServiceEndpointSecurityPolicyTests {
+    // MARK: Private
 
     private struct SchemeResult {
         let isSuccess: Bool
@@ -519,7 +581,7 @@ struct ServiceEndpointSecurityPolicyTests {
         return request
     }
 
-    private func resetServiceDefaults(_ service: CustomOpenAIService) {
+    private func resetServiceDefaults(_ service: BaseOpenAIService) {
         Defaults.reset(service.endpointKey)
         Defaults.reset(service.apiKeyKey)
         Defaults.reset(service.enableStreamingKey)

@@ -229,6 +229,13 @@ enum ConfigurationItemRegistry {
         add("EZDoubaoModelKey", "service.doubao.model", string)
         add("kAppModelTriggerListKey", "setting.disabled-apps", [.array])
         add("enableVocabularyNotebook", "setting.vocabulary-notebook.enabled", boolean)
+        add("enableAnkiConnect", "setting.anki.enabled", boolean)
+        add("ankiConnectEndpoint", "setting.anki.endpoint", string, endpoint: true)
+        add("ankiConnectDeck", "setting.anki.deck", string)
+        add("ankiConnectModel", "setting.anki.model", string)
+        add("ankiConnectFrontField", "setting.anki.front-field", string)
+        add("ankiConnectBackField", "setting.anki.back-field", string)
+        add("ankiConnectFieldMappings", "setting.anki.field-mappings", [.array])
 
         for (key, descriptor) in boolSettings {
             add(key, "setting.\(descriptor)", boolean, scheme: key == "EZBetaFeatureKey")
@@ -383,6 +390,8 @@ enum ConfigurationItemRegistry {
     ])
     private static let excludedRuntimeKeys = Set([
         "vocabularyNotebookDirectory",
+        "ankiConnectModelFields",
+        "EZDeepLWebAppVersionCacheKey",
         "EZConfiguration_kFirstLaunch",
         "EZConfiguration_kScreenVisibleFrameKey",
         "EZConfiguration_kFormerMiniScreenVisibleFrameKey",

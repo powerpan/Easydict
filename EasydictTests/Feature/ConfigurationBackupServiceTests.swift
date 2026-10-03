@@ -7,6 +7,7 @@
 //
 
 import CoreFoundation
+import Defaults
 import Foundation
 import Testing
 
@@ -110,6 +111,56 @@ struct ConfigurationBackupServiceTests {
         let restoredBeta = try #require(destinationStore.domain[betaKey] as? NSNumber)
         #expect(CFGetTypeID(restoredBeta) == CFBooleanGetTypeID())
         #expect(restoredBeta.boolValue)
+    }
+
+    @Test("Anki mappings survive Defaults serialization and encrypted backup without runtime caches")
+    func roundTripsAnkiMappingsFromIsolatedDefaults() throws {
+        let sourceName = "com.easydict.tests.anki-source.\(UUID().uuidString)"
+        let destinationName = "com.easydict.tests.anki-destination.\(UUID().uuidString)"
+        let sourceDefaults = try #require(UserDefaults(suiteName: sourceName))
+        let destinationDefaults = try #require(UserDefaults(suiteName: destinationName))
+        defer {
+            sourceDefaults.removePersistentDomain(forName: sourceName)
+            destinationDefaults.removePersistentDomain(forName: destinationName)
+        }
+        let mappingKey = "ankiConnectFieldMappings"
+        let sourceKey = Defaults.Key<[AnkiFieldMapping]>(mappingKey, default: [], suite: sourceDefaults)
+        let destinationKey = Defaults.Key<[AnkiFieldMapping]>(mappingKey, default: [], suite: destinationDefaults)
+        var mapping = AnkiFieldMapping(ankiField: "Front", easydictField: .word)
+        mapping.template = "<b>{Word}</b> · {Translation}"
+        let mappings = [mapping, AnkiFieldMapping(ankiField: "Back", easydictField: .fullResult)]
+        Defaults[sourceKey] = mappings
+        Defaults[Defaults.Key<[String]>("ankiConnectModelFields", default: [], suite: sourceDefaults)] = [
+            "Front",
+            "Back",
+        ]
+        Defaults[Defaults.Key<String>("EZDeepLWebAppVersionCacheKey", default: "", suite: sourceDefaults)] = "26.52"
+
+        let rawMappings = try #require(sourceDefaults.array(forKey: mappingKey) as? [String])
+        #expect(try rawMappings
+            .map { try JSONDecoder().decode(AnkiFieldMapping.self, from: Data($0.utf8)) } == mappings)
+        let source = ConfigurationBackupService(
+            domainStore: UserDefaultsConfigurationDomainStore(defaults: sourceDefaults, domainName: sourceName),
+            metadata: metadata
+        )
+        let destination = ConfigurationBackupService(
+            domainStore: UserDefaultsConfigurationDomainStore(
+                defaults: destinationDefaults,
+                domainName: destinationName
+            ),
+            metadata: metadata
+        )
+        let encrypted = try source.exportData(password: password, confirmation: password)
+        let prepared = try destination.prepareRestore(data: encrypted, password: password)
+        #expect(prepared.preview.settingCount == 1)
+        #expect(prepared.resolvedItems.map(\.entry.userDefaultsKey) == [mappingKey])
+
+        try destination.apply(prepared)
+
+        #expect(destinationDefaults.array(forKey: mappingKey) as? [String] == rawMappings)
+        #expect(Defaults[destinationKey] == mappings)
+        #expect(destinationDefaults.persistentDomain(forName: destinationName)?["ankiConnectModelFields"] == nil)
+        #expect(destinationDefaults.persistentDomain(forName: destinationName)?["EZDeepLWebAppVersionCacheKey"] == nil)
     }
 
     @Test("Previews and applies a merge without deleting current-only values")

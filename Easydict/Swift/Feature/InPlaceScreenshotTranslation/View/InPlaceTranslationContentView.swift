@@ -62,7 +62,7 @@ struct InPlaceTranslationContentView: View {
                     }
                 currentImage
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
+                    .scaledToFit()
 
                 if viewModel.effectiveRenderMode == .translated,
                    let snapshot = viewModel.snapshot {

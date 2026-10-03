@@ -9,7 +9,7 @@
 用户批准在独立 `codex/integrate-upstream-20261003` 分支整合上游 2.23、2.24
 及固定的 dev 快照，并在验证后的里程碑推送 `powerpan/Easydict`。
 原 `dev` 和已推送的问答修复分支保持不变，不发布安装包或修改上游 PR。
-完整执行记录见 `docs/exec-plans/active/2026-10-03-upstream-integration.md`。
+完整执行记录见[归档计划](../../exec-plans/completed/2026-10/2026-10-03-upstream-integration.md)。
 
 ## M0：个人功能基线
 
@@ -58,3 +58,33 @@ JSON/重复 key/三方文案值、六语言、SwiftFormat、PBX 和 diff 检查�
 review 无阻断 finding，凭据模式扫描工作树与上游提交范围均 0 候选。
 SSE fixture 长行修正后的网络 suite 13 tests 通过，M2 共 98 tests；SwiftLint
 7 warnings、0 serious，未留下新增长行警告。
+
+交付：`7e10cd897155184eb1c484a83dcbdea9fd1be9e9`，已推送个人仓库。
+
+## M3：最新开发快照适配
+
+合并固定 `cfda6e2f43741a3210a290e422846f1d83742d38`，接入 AnkiConnect、Gemini
+OpenAI 兼容接口、DeepL 动态版本及希伯来语/泰语、QR 完成回调与 Sendable 修复。
+Anki 默认关闭，新增工具栏与 Markdown、提问按钮共用顺序锚点；配置可迁移但缓存不
+进入备份，endpoint 和 redirect 沿用原安全策略。Anki 操作日志只保留状态/字段数量。
+DeepL 版本查询也限制重定向，原位 OCR 不恢复截图落盘。Debug 更新源随上游移除
+localhost，改用正式 HTTPS appcast；未执行下载更新或发布操作。
+
+最终验证：25 个 focused suites 共 213 tests、独立 AppKit 界面 1 test、反向翻译
+7 tests、历史语言重放 2 tests 均通过，合计 223 tests。Release 双架构
+`arm64`/`x86_64` build 通过；未签名、打包、公证或安装。真实 Provider、Anki 写卡、
+CLI 登录及系统权限矩阵未运行，不能把离线验证视作这些功能的端到端验收。
+
+界面测试使用真实 AppKit 视图与合成内容，按钮三次展开/收回和草稿保留均通过，
+并人工检查其渲染 PNG：输入框完整，工具栏按钮无重叠。测试仅通过运行时桥接访问
+现有 Objective-C 接口；未添加生产 hook。缓存断言使用实际持久 domain，避免
+Defaults 注册值造成误判。Swift Testing 方法过滤必须带 `()`；零测试不计为通过。
+
+静态检查：SwiftFormat 24 files、JSON/六语言/PBX 引用/Info plist/diff/Shell/Python
+语法通过，SwiftLint 7 项既有 warnings、0 serious。语义 review 无阻断 finding；
+工作树增量和上游提交范围的常见凭据模式扫描 0 候选。原始日志、合成截图、实际
+偏好域和账户凭据均未提交，扫描结果不代表历史泄露已撤销或凭据已轮换。
+
+本次保留合并祖先关系，通过独立整合分支向个人 fork 普通推送；最终提交与远端
+状态见交付回执。原 `dev` 分支与原工作树保持不变，用户正在使用的安装版本没有
+被本次任务替换。

@@ -1,6 +1,6 @@
 # 上游功能整合与里程碑交付
 
-**Status:** active
+**Status:** completed
 **Created:** 2026-10-03
 **Updated:** 2026-10-03
 **Owner:** Easydict contributors
@@ -128,5 +128,38 @@
   关键生产适配 diff SHA-256：
   `ac0abb5a010262993167a2ebc9d184879e97fd111643871db1282a0eebc045a5`。
   工作树与上游 commit range 凭据模式扫描 0 候选；未调用真实 Copilot CLI。
-- [ ] M2 完成并推送。
-- [ ] M3 完成并推送、计划归档。
+- [x] M2：`7e10cd897155184eb1c484a83dcbdea9fd1be9e9`，已普通 push 到 fork。
+- M3：三个文本冲突按语义解决；Anki、Markdown 和提问使用同一工具栏锚点。
+  Anki 请求/设置/备份接入统一 endpoint 策略；请求禁止跨 origin 重定向，日志
+  不含查询、牌组、模型字段值或错误响应正文。Anki 配置可加密迁移，模型字段缓存与
+  DeepL 版本缓存不导出。Gemini 继承已加固的 OpenAI transport。DeepL 新版本查询
+  也应用重定向边界；保留 QR 完成回调修复和纯内存 layout OCR。
+- M3 首轮 Debug build-for-testing 成功；String Catalog 共 688 keys，保留 126 个
+  本地语义差异，41 个 Anki keys 均覆盖六种语言。SwiftLint 升级后新增的一处原位
+  视图 aspect ratio 警告按等价 `scaledToFit()` 用法消除，等待最终测试复验。
+- M3 验证：最终 25 focused suites 的 213 tests 全部通过；单独运行的 AppKit
+  工具栏交互 1 test、ReverseTranslationTests 7 tests、QueryReplayRequestTests
+  2 tests 均通过，最终共 223 tests。真实 Anki/CLI/Provider 调用不在本次测试中。
+  Debug build-for-testing/test 与 Release build 通过；Release 产物同时包含
+  `arm64` 与 `x86_64`，本次使用 `CODE_SIGNING_ALLOWED=NO`，不代表签名或发布验收。
+- M3 界面证据：用合成释义创建真实 AppKit 结果视图，触发提问按钮三次展开/收回；
+  输入可见、高度恢复、草稿保留、Anki/Markdown/提问按钮顺序断言通过，检查了临时
+  PNG 渲染，输入完整且按钮无重叠。该证据不替代真实窗口、屏幕录制权限和 Provider
+  的完整人工矩阵，合成截图没有提交到仓库。
+- 测试修正记录：Swift 测试未直接导入 Objective-C 视图声明，改为测试侧运行时桥接，
+  无生产 hook；缓存排除改查持久 domain，避免注册默认值造成误判。Swift Testing
+  按方法筛选使用带 `()` 的完整标识，零测试执行不计为通过；真实 DeepL/Copilot 方法
+  显式排除，Copilot 两项离线合约测试在最终组合中实际运行。
+- M3 静态验证：SwiftFormat 24 个变更 Swift 文件、String Catalog JSON、两个
+  Info plist/PBX、工程悬空/重复引用、Shell/Python 语法、diff whitespace 均通过。
+  SwiftLint 最终为 7 项既有 warnings、0 serious；新增测试的长度警告通过同文件
+  helper extension 消除，没有减少覆盖或禁用 lint。
+- M3 review：检查 Anki 请求/重定向/日志/模板、设置与备份分类、Gemini 继承的安全
+  transport、DeepL 版本查询/取消、QR 完成路径、工具栏与问答 reset，未发现阻断
+  finding。生产集成 diff SHA-256 为
+  `ba32d5de7b57b4e31cf7385cb570c1bec10031d0c50327fb77758f0239a7edf9`，
+  包含测试的审查快照 SHA-256 为
+  `e3ee868b5fbedcf21db07058d4bf53f74ff24657fd2d656fff284203efa3f622`。
+  现有逐段适配保持上游结构且足够，不增加独立网络层或生产测试接口。
+- [x] M3 功能、验证与计划归档完成；最终 merge commit 的普通 push 和远端 SHA
+  以交付回执核对。不重写历史、不更新上游 PR、不替换本机已安装应用。

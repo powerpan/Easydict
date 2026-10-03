@@ -194,6 +194,36 @@ struct ConfigurationItemRegistryTests {
         #expect(!ConfigurationItemRegistry.isSchemeAutomatableKey("vocabularyNotebookDirectory"))
     }
 
+    @Test("Anki preferences are portable but reject URL Scheme automation and runtime caches")
+    func classifiesAnkiPreferencesAndRuntimeCaches() throws {
+        let settings: [(String, String, ConfigurationValueKind)] = [
+            ("enableAnkiConnect", "enabled", .boolean),
+            ("ankiConnectEndpoint", "endpoint", .string),
+            ("ankiConnectDeck", "deck", .string),
+            ("ankiConnectModel", "model", .string),
+            ("ankiConnectFrontField", "front-field", .string),
+            ("ankiConnectBackField", "back-field", .string),
+            ("ankiConnectFieldMappings", "field-mappings", .array),
+        ]
+
+        for (key, descriptorSuffix, valueKind) in settings {
+            let entry = try #require(ConfigurationItemRegistry.entry(forUserDefaultsKey: key))
+            #expect(entry.category == .portableSetting)
+            #expect(entry.descriptor.name == "setting.anki.\(descriptorSuffix)")
+            #expect(entry.allowedValueKinds == [valueKind])
+            #expect(entry.isEndpoint == (key == "ankiConnectEndpoint"))
+            #expect(!entry.isSchemeAutomatable)
+            #expect(ConfigurationItemRegistry.schemeValue(forKey: key, rawValue: "untrusted") == nil)
+            #expect(ConfigurationItemRegistry.entry(for: entry.descriptor)?.userDefaultsKey == key)
+        }
+
+        for key in ["ankiConnectModelFields", "EZDeepLWebAppVersionCacheKey"] {
+            #expect(ConfigurationItemRegistry.category(forUserDefaultsKey: key) == .excludedRuntime)
+            #expect(ConfigurationItemRegistry.entry(forUserDefaultsKey: key) == nil)
+            #expect(!ConfigurationItemRegistry.isSchemeAutomatableKey(key))
+        }
+    }
+
     @Test("Treats the disabled-app list as a portable user setting")
     func includesDisabledAppConfiguration() throws {
         let entry = try #require(

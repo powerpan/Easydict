@@ -6,6 +6,8 @@
 //  Copyright © 2026 izual. All rights reserved.
 //
 
+import AppKit
+import Defaults
 import Foundation
 import Testing
 
@@ -188,6 +190,99 @@ struct ContextualQuestionSessionTests {
         #expect(!session.isExpanded)
     }
 
+    @MainActor
+    @Test("Anki and Markdown toolbar actions coexist with repeated contextual question expansion")
+    func resultToolbarPreservesQuestionInteraction() async throws {
+        let domainName = try #require(Bundle.main.bundleIdentifier)
+        let ankiSettingKey = "enableAnkiConnect"
+        let previousAnkiSetting = UserDefaults.standard.persistentDomain(forName: domainName)?[ankiSettingKey]
+        Defaults[.enableAnkiConnect] = true
+        defer {
+            if let previousAnkiSetting {
+                UserDefaults.standard.set(previousAnkiSetting, forKey: ankiSettingKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: ankiSettingKey)
+            }
+        }
+        let result = QueryResult()
+        result.queryText = "Synthetic dictionary example"
+        result.translatedResults = ["用于工具栏回归验证的合成释义。"]
+        result.wordResult = EZTranslateWordResult()
+        result.from = .english
+        result.to = .simplifiedChinese
+        result.isStreamFinished = true
+        let service = DeepSeekService()
+        service.result = result
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 600, height: 400),
+            styleMask: [.titled], backing: .buffered, defer: false
+        )
+        window.isReleasedWhenClosed = false
+        defer { window.close() }
+        // The Objective-C card header is not imported by the Swift test target.
+        let cardType = try #require(NSClassFromString("EZWordResultView") as? NSView.Type)
+        let card = cardType.init(frame: NSRect(x: 12, y: 12, width: 576, height: 300))
+        card.setValue(service, forKey: "service")
+        let updateHeight: @convention(block) (CGFloat) -> () = { [weak card] height in
+            card?.setFrameSize(NSSize(width: 576, height: height))
+        }
+        card.setValue(updateHeight, forKey: "updateViewHeightBlock")
+        let viewHeight = {
+            CGFloat((card.value(forKey: "viewHeight") as? NSNumber)?.doubleValue ?? 0)
+        }
+        window.contentView?.addSubview(card)
+        card.perform(NSSelectorFromString("refreshWithResult:"), with: result)
+        card.setFrameSize(NSSize(width: 576, height: viewHeight()))
+        card.layoutSubtreeIfNeeded()
+
+        let session = try #require(result.contextualQuestionSession)
+        let questionButton = try #require(card.subviews.compactMap { $0 as? ContextualQuestionButton }.first)
+        let panel = try #require(card.subviews.compactMap { $0 as? ContextualQuestionView }.first)
+        let markdownButton = try #require(card.subviews.compactMap { $0 as? MarkdownToggleButton }.first)
+        let ankiButton = try #require(card.subviews.compactMap { $0 as? NSButton }.first {
+            $0.toolTip == String(localized: "anki.connect.add_button")
+        })
+        let input = try #require(panel.subviews.compactMap { $0 as? NSTextField }.first { $0.isEditable })
+        let collapsedHeight = viewHeight()
+        #expect(questionButton.isEnabled)
+        #expect(panel.isHidden)
+
+        for cycle in 0 ..< 3 {
+            questionButton.performClick(nil)
+            #expect(try await waitForUI {
+                session.isExpanded && !panel.isHidden && panel.preferredHeight > 0 && viewHeight() > collapsedHeight
+            })
+            card.layoutSubtreeIfNeeded()
+            panel.layoutSubtreeIfNeeded()
+            #expect(!input.isHiddenOrHasHiddenAncestor)
+            #expect(input.isEnabled && input.frame.width > 80 && input.frame.height > 0)
+            #expect(ankiButton.frame.width > 0 && markdownButton.frame.width > 0 && questionButton.frame.width > 0)
+            #expect(ankiButton.frame.maxX <= markdownButton.frame.minX)
+            #expect(markdownButton.frame.maxX <= questionButton.frame.minX)
+
+            if cycle == 0 {
+                input.stringValue = "Explain this synthetic example"
+                panel.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: input))
+                let bitmap = try #require(card.bitmapImageRepForCachingDisplay(in: card.bounds))
+                card.cacheDisplay(in: card.bounds, to: bitmap)
+                let png = try #require(bitmap.representation(using: .png, properties: [:]))
+                let screenshot = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("easydict-contextual-toolbar-expanded.png")
+                try png.write(to: screenshot, options: .atomic)
+                print("Synthetic contextual toolbar rendering: \(screenshot.path)")
+            }
+            #expect(session.draft == "Explain this synthetic example")
+            #expect(input.stringValue == session.draft)
+
+            questionButton.performClick(nil)
+            #expect(try await waitForUI {
+                !session.isExpanded && panel.isHidden && panel.preferredHeight == 0
+                    && abs(viewHeight() - collapsedHeight) < 0.5
+            })
+            #expect(session.draft == "Explain this synthetic example")
+        }
+    }
+
     // MARK: Private
 
     private func request(
@@ -222,6 +317,15 @@ struct ContextualQuestionSessionTests {
         for _ in 0 ..< iterations {
             await Task.yield()
         }
+    }
+
+    @MainActor
+    private func waitForUI(predicate: () -> Bool) async throws -> Bool {
+        for _ in 0 ..< 100 {
+            if predicate() { return true }
+            try await Task<Never, Never>.sleep(nanoseconds: 10_000_000)
+        }
+        return predicate()
     }
 }
 
