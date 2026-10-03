@@ -101,7 +101,6 @@ class MyConfiguration: NSObject {
     @DefaultsWrapper(.enableMarkdownRendering) var enableMarkdownRendering: Bool
 
     // Advanced Tab
-    @DefaultsWrapper(.disableTipsView) var disableTipsView: Bool
     @DefaultsWrapper(.enableBetaFeature) private(set) var beta: Bool
     @DefaultsWrapper(.enableYoudaoOCR) var enableYoudaoOCR: Bool
     @DefaultsWrapper(.enableCompatibilityReplace) var enableCompatibilityReplace: Bool
@@ -172,6 +171,7 @@ class MyConfiguration: NSObject {
     private func observeKeys() {
         Defaults.publisher(.firstLanguage, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetFirstLanguage()
             }
@@ -179,6 +179,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.secondLanguage, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetSecondLanguage()
             }
@@ -186,6 +187,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.autoShowQueryIcon, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetAutoSelectText()
             }
@@ -193,6 +195,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.autoShowQueryIconExcludedLanguage, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetAutoShowQueryIconExcludedLanguage()
             }
@@ -200,6 +203,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.autoShowQueryIconMinTextLength, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetAutoShowQueryIconMinTextLength()
             }
@@ -207,6 +211,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.enableForceGetSelectedText, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetForceAutoGetSelectedText()
             }
@@ -214,6 +219,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.clickQuery, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetClickQuery()
             }
@@ -221,6 +227,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.hideMainWindow, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetHideMainWindow()
             }
@@ -228,6 +235,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.autoQueryOCRText, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetAutoQueryOCRText()
             }
@@ -235,6 +243,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.autoQuerySelectedText, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetAutoQuerySelectedText()
             }
@@ -242,6 +251,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.autoQueryPastedText, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetAutoQueryPastedText()
             }
@@ -249,6 +259,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.autoPlayAudio, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetAutoPlayAudio()
             }
@@ -256,6 +267,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.pronunciation, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetPronunciation()
             }
@@ -263,6 +275,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.autoCopySelectedText, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetAutoCopySelectedText()
             }
@@ -270,6 +283,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.autoCopyOCRText, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetAutoCopyOCRText()
             }
@@ -277,6 +291,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.autoCopyFirstTranslatedText, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetAutoCopyFirstTranslatedText()
             }
@@ -284,6 +299,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.languageDetectOptimize, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetLanguageDetectOptimize()
             }
@@ -291,6 +307,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.defaultTTSServiceType, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetDefaultTTSServiceType()
             }
@@ -298,6 +315,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.showGoogleQuickLink, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetShowGoogleQuickLink()
             }
@@ -305,6 +323,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.showEudicQuickLink, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetShowEudicQuickLink()
             }
@@ -312,6 +331,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.showAppleDictionaryQuickLink, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetShowAppleDictionaryQuickLink()
             }
@@ -319,6 +339,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.showQuickActionButton, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetShowSettingQuickLink()
             }
@@ -326,6 +347,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.hideMenuBarIcon, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetHideMenuBarIcon()
             }
@@ -333,6 +355,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.fixedWindowPosition, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetFixedWindowPosition()
             }
@@ -340,6 +363,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.mouseSelectTranslateWindowType, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetMouseSelectTranslateWindowType()
             }
@@ -347,6 +371,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.shortcutSelectTranslateWindowType, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetShortcutSelectTranslateWindowType()
             }
@@ -354,6 +379,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.allowCrashLog, options: [.initial])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetAllowCrashLog()
             }
@@ -361,6 +387,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.allowAnalytics, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetAllowAnalytics()
             }
@@ -368,6 +395,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.clearQueryWhenInputTranslate, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetClearInput()
             }
@@ -375,6 +403,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.fontSizeOptionIndex, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.didSetFontSizeIndex()
             }
@@ -382,6 +411,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.appearanceType, options: [])
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] change in
                 let newValue = change.newValue
                 self?.didSetAppearance(newValue)
@@ -398,6 +428,7 @@ class MyConfiguration: NSObject {
             options: []
         )
         .throttle(for: 0.5, scheduler: DispatchQueue.main, latest: true)
+        .receive(on: DispatchQueue.main)
         .sink { _ in
             EZWindowManager.shared().updateWindowsTitlebarButtonsToolTip()
         }
@@ -405,6 +436,7 @@ class MyConfiguration: NSObject {
 
         Defaults.publisher(.enableHTTPServer)
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { change in
                 let isOn = change.newValue
                 Task {

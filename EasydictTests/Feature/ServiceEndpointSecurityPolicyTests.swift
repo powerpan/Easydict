@@ -284,7 +284,9 @@ struct ServiceEndpointSecurityPolicyTests {
     func followsSameOriginOpenAIStreamRedirect() async throws {
         let originalURL = try #require(URL(string: "http://localhost:65530/v1/start"))
         let targetURL = try #require(URL(string: "http://localhost:65530/v1/final"))
-        let event = #"{"id":"redirect-test","object":"chat.completion.chunk","created":1,"model":"endpoint-policy-test-model","choices":[{"index":0,"delta":{"content":"redirected-stream-answer"},"finish_reason":null}]}"#
+        let event = #"{"id":"redirect-test","object":"chat.completion.chunk","created":1,"#
+            + #""model":"endpoint-policy-test-model","choices":[{"index":0,"#
+            + #""delta":{"content":"redirected-stream-answer"},"finish_reason":null}]}"#
         EndpointProbeURLProtocol.configureRedirect(
             from: originalURL,
             to: targetURL,

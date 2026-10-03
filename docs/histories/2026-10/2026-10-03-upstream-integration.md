@@ -40,3 +40,21 @@ ReverseTranslationTests（7）与 QueryReplayRequestTests（2）通过。SwiftFo
 Info plist/PBX 和 diff 检查通过，SwiftLint 7 warnings、0 serious。审查新 SDK、取消与
 配置边界后无阻断 finding；工作树增量和上游提交范围的常见凭据模式扫描未发现候选。
 真实服务登录、下载组件和实际收费 Provider 未调用；原始测试日志不提交。
+
+交付：`394704a4f7992be0a87e3da001f6a1485efde548`，已推送个人仓库。
+
+## M2：2.24 功能适配
+
+接入 GitHub Copilot CLI、动态模型目录、本地生词本、普通 OCR 二维码、有道发音与
+其他上游修复。普通 OCR 与原位布局 API 保持独立；二维码 payload 不变成覆盖翻译块，
+截图仍只在内存中处理。新 Copilot 调用沿用原位服务的明文日志禁用标志。
+
+生词本默认关闭，仅用户启用且选择目录后写入；备份包含开关但不包含本机目录、
+生词内容或 CLI 凭据。字符串目录冲突按 key 做三方合并，保留原文本替换和新生词本
+各自的提示。未运行真实 Copilot CLI 翻译测试，以免触发账户、网络或配额副作用。
+
+验证：Debug build-for-testing 及 10 suites 共 85 tests 通过，含 4 项 QR 图片行为测试。
+JSON/重复 key/三方文案值、六语言、SwiftFormat、PBX 和 diff 检查通过；生产适配
+review 无阻断 finding，凭据模式扫描工作树与上游提交范围均 0 候选。
+SSE fixture 长行修正后的网络 suite 13 tests 通过，M2 共 98 tests；SwiftLint
+7 warnings、0 serious，未留下新增长行警告。

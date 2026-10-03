@@ -9,7 +9,6 @@
 #import <Cocoa/Cocoa.h>
 #import "EZLayoutManager.h"
 #import "EZTitlebar.h"
-#import "EZTableTipsCell.h"
 #import "EZLanguageModel.h"
 
 @class EZQueryModel;
@@ -89,9 +88,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 /// Discard cached dictionary WebViews when the query window has been idle.
 - (void)discardDictionaryWebViews;
-
-/// show tips view
-- (void)showTipsView:(BOOL)isVisible;
 
 @end
 

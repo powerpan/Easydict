@@ -116,6 +116,17 @@
   JSON、两个 plist、PBX、diff 和 SwiftFormat 通过，SwiftLint 7 warnings、0 serious。
   已扫描工作树增量和本次上游 commit range 的常见凭据模式，未发现候选；没有把原始
   测试日志、系统剪贴板或用户配置纳入提交。真实 Provider/CLI 登录不在此次验证内。
-- [ ] M1 完成并推送。
+- [x] M1：`394704a4f7992be0a87e3da001f6a1485efde548`，已普通 push 到 fork。
+- M2：合并固定 2.24 快照；工程引用合并保留双方文件，String Catalog 按语义 key
+  三方合并。OCR 保留新 QR 管线和独立 layout API，并移除新函数中重新出现的截图
+  落盘。Copilot 透传原位明文日志策略；生词本开关可备份，但目录是 excluded runtime。
+- M2：Debug build-for-testing 和 10 suites 的 85 tests 通过。String Catalog key
+  三方值验证、重复 key 检查、生词本六语言覆盖、SwiftFormat（16 files）、JSON、PBX
+  和 diff 通过。新增 SSE fixture 长行警告已由独立测试执行者消除，随后网络 suite
+  13 tests 通过；本里程碑合计 98 tests，SwiftLint 回到 7 warnings、0 serious。
+  原位布局/QR 分流、Copilot logger 链路、生词本写入入口的语义 review 无阻断 finding；
+  关键生产适配 diff SHA-256：
+  `ac0abb5a010262993167a2ebc9d184879e97fd111643871db1282a0eebc045a5`。
+  工作树与上游 commit range 凭据模式扫描 0 候选；未调用真实 Copilot CLI。
 - [ ] M2 完成并推送。
 - [ ] M3 完成并推送、计划归档。

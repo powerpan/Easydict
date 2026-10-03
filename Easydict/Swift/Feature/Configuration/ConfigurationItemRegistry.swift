@@ -228,6 +228,7 @@ enum ConfigurationItemRegistry {
         add("EZBaiduServiceApiTypeKey", "service.baidu.api-type", string)
         add("EZDoubaoModelKey", "service.doubao.model", string)
         add("kAppModelTriggerListKey", "setting.disabled-apps", [.array])
+        add("enableVocabularyNotebook", "setting.vocabulary-notebook.enabled", boolean)
 
         for (key, descriptor) in boolSettings {
             add(key, "setting.\(descriptor)", boolean, scheme: key == "EZBetaFeatureKey")
@@ -381,6 +382,7 @@ enum ConfigurationItemRegistry {
         "EZConfiguration_kQueryHistory",
     ])
     private static let excludedRuntimeKeys = Set([
+        "vocabularyNotebookDirectory",
         "EZConfiguration_kFirstLaunch",
         "EZConfiguration_kScreenVisibleFrameKey",
         "EZConfiguration_kFormerMiniScreenVisibleFrameKey",

@@ -174,6 +174,26 @@ struct ConfigurationItemRegistryTests {
         )
     }
 
+    @Test("Backs up the vocabulary notebook toggle without restoring a machine-local directory")
+    func separatesVocabularyNotebookPreferenceFromLocalDirectory() throws {
+        let entry = try #require(
+            ConfigurationItemRegistry.entry(forUserDefaultsKey: "enableVocabularyNotebook")
+        )
+
+        #expect(entry.category == .portableSetting)
+        #expect(entry.descriptor.name == "setting.vocabulary-notebook.enabled")
+        #expect(entry.accepts(NSNumber(value: true)))
+        #expect(!entry.accepts(NSNumber(value: 1)))
+        #expect(!entry.isSchemeAutomatable)
+        #expect(ConfigurationItemRegistry.entry(for: entry.descriptor)?.userDefaultsKey == entry.userDefaultsKey)
+        #expect(
+            ConfigurationItemRegistry.category(forUserDefaultsKey: "vocabularyNotebookDirectory") ==
+                .excludedRuntime
+        )
+        #expect(ConfigurationItemRegistry.entry(forUserDefaultsKey: "vocabularyNotebookDirectory") == nil)
+        #expect(!ConfigurationItemRegistry.isSchemeAutomatableKey("vocabularyNotebookDirectory"))
+    }
+
     @Test("Treats the disabled-app list as a portable user setting")
     func includesDisabledAppConfiguration() throws {
         let entry = try #require(
