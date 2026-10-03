@@ -9,6 +9,8 @@
 import AXSwift
 import Foundation
 
+// MARK: - FocusedElementInfo
+
 /// Result type for focused UI element information
 struct FocusedElementInfo: CustomStringConvertible {
     // MARK: Lifecycle

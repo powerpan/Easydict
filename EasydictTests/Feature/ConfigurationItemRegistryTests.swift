@@ -100,6 +100,51 @@ struct ConfigurationItemRegistryTests {
         #expect(!ConfigurationItemRegistry.isSchemeAutomatableKey("unregistered-setting"))
     }
 
+    @Test("CLI preferences round trip while account mode rejects URL Scheme writes")
+    func classifiesCLIPreferencesWithoutAutomatingAccountMode() throws {
+        let service = ServiceType.codexCLI.rawValue
+        let fields: [(ServiceConfigurationKey, String)] = [
+            (.cliEffort, "high"),
+            (.codexAccessMode, "managed"),
+            (.codexManagedModel, "test-model"),
+            (.codexManagedReasoningEffort, "medium"),
+        ]
+
+        for uuid in ["", "00000000-0000-4000-8000-000000000004"] {
+            for (field, value) in fields {
+                var qualifiers = ["service": service, "field": field.rawValue]
+                if !uuid.isEmpty { qualifiers["uuid"] = uuid }
+                let descriptor = ConfigurationItemDescriptor(
+                    name: "service.configuration", qualifiers: qualifiers
+                )
+                let entry = try #require(ConfigurationItemRegistry.entry(for: descriptor))
+
+                #expect(entry.category == .portableSetting)
+                #expect(entry.accepts(value))
+                #expect(!entry.accepts(NSNumber(value: true)))
+                #expect(!entry.accepts(NSNumber(value: 1)))
+                #expect(
+                    ConfigurationItemRegistry.entry(forUserDefaultsKey: entry.userDefaultsKey)?.descriptor ==
+                        descriptor
+                )
+                if field == .codexAccessMode {
+                    #expect(!entry.isSchemeAutomatable)
+                    #expect(ConfigurationItemRegistry
+                        .schemeValue(forKey: entry.userDefaultsKey, rawValue: value) == nil)
+                } else {
+                    #expect(entry.isSchemeAutomatable)
+                    #expect(
+                        ConfigurationItemRegistry.schemeValue(
+                            forKey: entry.userDefaultsKey,
+                            rawValue: value
+                        ) as? String ==
+                            value
+                    )
+                }
+            }
+        }
+    }
+
     @Test("Separates user content, runtime state, and unknown keys")
     func separatesExcludedAndUnsupportedItems() {
         #expect(

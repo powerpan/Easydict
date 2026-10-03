@@ -103,7 +103,19 @@
   里程碑推送。初始工作树干净，建立独立整合分支。
 - M0：移植服务菜单修复；三个原位 focused suites 共 36 tests 通过，Debug
   test 构建成功；diff whitespace、SwiftFormat 4 files、String Catalog JSON 通过。
-- [ ] M0 完成并推送（验证完成，待提交）。
+- [x] M0：`97ef58c1ee981c62a45d4a2aa2ef7cd39ff33e27`，已普通 push 到 fork 同名分支。
+- M1：合并固定 2.23 快照；逐段解决 12 个冲突文件，使用上游 SDK/task control，
+  移除重复 SSE 实现并将新 transport 接入统一 endpoint/redirect 策略。保留 CLI
+  明文日志开关、替换 prompt、加密导出、重置确认和语言重放。首轮 Debug
+  build-for-testing 通过。新增网络与 reset 边界回归随 18 suites 共 169 tests
+  通过；反向翻译 7 tests 和语言重放 2 tests 分开运行并通过。
+- M1 review：以稳定版与整合工作树的实际代码为准，检查新 transport、CLI
+  请求协调、QueryResult reset、设置确认、语言重放和工程引用。修复网络入口遗漏后
+  无阻断 finding；关键生产适配 diff SHA-256 为
+  `924832c7f1bb0e5b5776f120bab7b060f737c386c8f06d7b7889558f286de8cb`。
+  JSON、两个 plist、PBX、diff 和 SwiftFormat 通过，SwiftLint 7 warnings、0 serious。
+  已扫描工作树增量和本次上游 commit range 的常见凭据模式，未发现候选；没有把原始
+  测试日志、系统剪贴板或用户配置纳入提交。真实 Provider/CLI 登录不在此次验证内。
 - [ ] M1 完成并推送。
 - [ ] M2 完成并推送。
 - [ ] M3 完成并推送、计划归档。

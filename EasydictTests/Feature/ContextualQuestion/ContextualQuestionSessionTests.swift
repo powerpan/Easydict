@@ -159,6 +159,35 @@ struct ContextualQuestionSessionTests {
         #expect(!session.isExpanded)
     }
 
+    @MainActor
+    @Test("Reusing a query result cancels and clears its contextual question")
+    func queryResultResetCancelsOwnedQuestion() async {
+        let result = QueryResult()
+        let session = ContextualQuestionSession()
+        let provider = ControlledContextualQuestionProvider()
+        result.contextualQuestionSession = session
+        session.draft = "Explain this concept"
+        session.setExpanded(true)
+        #expect(session.submit(request: request(), provider: provider))
+        provider.yield("Answer from the previous query")
+        #expect(await waitUntil { session.phase == .streaming })
+
+        result.reset()
+        #expect(await waitUntil { provider.cancelledRequestCount == 1 })
+        provider.yield("Late answer from the previous query")
+        provider.finish()
+        await drainScheduledTasks()
+
+        #expect(result.contextualQuestionSession == nil)
+        #expect(session.phase == .idle)
+        #expect(!session.isRunning)
+        #expect(session.submittedQuestion.isEmpty)
+        #expect(session.answer.isEmpty)
+        #expect(session.failureMessage == nil)
+        #expect(session.draft.isEmpty)
+        #expect(!session.isExpanded)
+    }
+
     // MARK: Private
 
     private func request(
@@ -210,11 +239,23 @@ private final class ControlledContextualQuestionProvider: ContextualQuestionStre
         return capturedRequests.count
     }
 
+    var cancelledRequestCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return cancellationCount
+    }
+
     func contextualQuestionStream(
         _ request: ContextualQuestionRequest
     )
         -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
+            continuation.onTermination = { [weak self] termination in
+                guard case .cancelled = termination, let self else { return }
+                lock.lock()
+                cancellationCount += 1
+                lock.unlock()
+            }
             lock.lock()
             capturedRequests.append(request)
             self.continuation = continuation
@@ -237,6 +278,7 @@ private final class ControlledContextualQuestionProvider: ContextualQuestionStre
     private let lock = NSLock()
     private var capturedRequests: [ContextualQuestionRequest] = []
     private var continuation: Continuation?
+    private var cancellationCount = 0
 
     private func currentContinuation() -> Continuation? {
         lock.lock()

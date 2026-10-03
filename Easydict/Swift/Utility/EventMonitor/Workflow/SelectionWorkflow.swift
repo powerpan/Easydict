@@ -179,9 +179,13 @@ final class SelectionWorkflow {
             return
         }
 
-        let enableForce = MyConfiguration.shared.enableForceGetSelectedText
-        logInfo("Enable force get selected text: \(enableForce ? "YES" : "NO")")
-        guard enableForce else {
+        // 显式快捷键查询是用户主动动作，不受强制取词开关限制
+        let isZenBrowser = contextProvider?.frontmostApplication?.bundleIdentifier == AppBundleIDs.zenBrowser
+        let allowForce = EventMonitor.shared.actionType == .shortcutQuery
+            || MyConfiguration.shared.enableForceGetSelectedText
+            || isZenBrowser
+        logInfo("Allow force get selected text: \(allowForce ? "YES" : "NO")")
+        guard allowForce else {
             completion(nil)
             return
         }
@@ -331,7 +335,6 @@ final class SelectionWorkflow {
     private func shouldForceGetSelectedText(axError: AXError) -> Bool {
         let enableForce = MyConfiguration.shared.enableForceGetSelectedText
         logInfo("Enable force get selected text: \(enableForce ? "YES" : "NO")")
-        guard enableForce else { return false }
 
         let application = contextProvider?.frontmostApplication
         let bundleID = application?.bundleIdentifier ?? ""
@@ -339,6 +342,19 @@ final class SelectionWorkflow {
             logInfo("Frontmost app is Easydict, skip force get selected text")
             return false
         }
+
+        // 显式快捷键查询是用户主动动作，不受强制取词开关限制
+        if EventMonitor.shared.actionType == .shortcutQuery {
+            logInfo("Shortcut query, allow force get selected text regardless of setting")
+            return true
+        }
+
+        if bundleID == AppBundleIDs.zenBrowser {
+            logInfo("Zen Browser Accessibility text unavailable, allow force get selected text")
+            return true
+        }
+
+        guard enableForce else { return false }
 
         if axError == .noValue {
             logInfo("AX selection fallback considered category=no_value")
@@ -354,9 +370,11 @@ final class SelectionWorkflow {
                 "com.foxit-software.Foxit.PDF.Reader",
                 "com.foxit-software.Foxit.PDF.Editor",
                 AppBundleIDs.books,
+                // iTerm2 的 AXTextArea 读取偶发返回空文本（macOS 26.x 实测），需走强制取词
+                "com.googlecode.iterm2",
             ],
             .attributeUnsupported: [
-                "com.sublimetext.4",
+                AppBundleIDs.sublimeText,
                 "com.microsoft.Word",
                 "com.microsoft.Powerpoint",
                 AppBundleIDs.weChat,
@@ -377,15 +395,6 @@ final class SelectionWorkflow {
         if let bundleIDs = allowedAppErrorDict[axError], bundleIDs.contains(bundleID) {
             logError(
                 "Allow force get selected text category=allowlisted_app " +
-                    "code=\(axError.rawValue)"
-            )
-            return true
-        }
-
-        if EventMonitor.shared.actionType == .shortcutQuery {
-            logInfo("Fallback to use force get selected text for shortcut query")
-            logError(
-                "Allow force get selected text category=shortcut_fallback " +
                     "code=\(axError.rawValue)"
             )
             return true

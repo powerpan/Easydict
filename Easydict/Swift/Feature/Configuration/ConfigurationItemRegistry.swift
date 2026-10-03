@@ -589,7 +589,7 @@ extension ServiceConfigurationKey {
     }
 
     fileprivate var isSchemeAutomatable: Bool {
-        ![.apiKey, .endpoint, .name, .systemPrompt, .userPrompt].contains(self)
+        ![.apiKey, .endpoint, .name, .systemPrompt, .userPrompt, .codexAccessMode].contains(self)
     }
 
     fileprivate func uuid(inStorageBody body: String) -> String? {

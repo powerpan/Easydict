@@ -47,7 +47,7 @@ extension AppleScriptTask {
     }
 
     class func isSafari(_ bundleID: String) -> Bool {
-        bundleID == "com.apple.Safari"
+        bundleID == AppBundleIDs.safari
     }
 
     class func isChromeKernelBrowser(_ bundleID: String) -> Bool {
@@ -363,13 +363,13 @@ extension AppleScriptTask {
     // MARK: - Static Data
 
     private static let chromeKernelBrowsers = [
-        "com.google.Chrome",
-        "com.microsoft.edgemac",
+        AppBundleIDs.googleChrome,
+        AppBundleIDs.microsoftEdge,
     ]
 
     static let browsersSupportingAppleScript = [
-        "com.apple.Safari",
-        "com.google.Chrome",
-        "com.microsoft.edgemac",
+        AppBundleIDs.safari,
+        AppBundleIDs.googleChrome,
+        AppBundleIDs.microsoftEdge,
     ]
 }

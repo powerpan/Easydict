@@ -8,6 +8,7 @@
 
 import Defaults
 import Foundation
+import OpenAI
 import Testing
 
 @testable import Easydict
@@ -169,8 +170,39 @@ struct ServiceEndpointSecurityPolicyTests {
         #expect(EndpointProbeURLProtocol.requestCount == 0)
     }
 
-    @Test("Stops unsafe 307 and 308 redirects before a credential-bearing second request")
-    func blocksUnsafeRedirectRequests() async throws {
+    @Test("OpenAI streaming rejects unsafe endpoints before sending credentials")
+    func rejectsUnsafeOpenAIStreamEndpoints() async throws {
+        let endpoints = [
+            "http://api.endpoint-policy.invalid/v1/chat/completions",
+            "https://user:password@localhost:65534/v1/chat/completions",
+        ]
+        #expect(URLProtocol.registerClass(EndpointProbeURLProtocol.self))
+        defer { URLProtocol.unregisterClass(EndpointProbeURLProtocol.self) }
+
+        for endpoint in endpoints {
+            let url = try #require(URL(string: endpoint))
+            EndpointProbeURLProtocol.configure(matching: [
+                endpoint,
+                "https://localhost:65534/v1/chat/completions",
+            ])
+
+            await #expect(throws: ServiceEndpointSecurityError.self) {
+                try await OpenAIStreamTransport().stream(
+                    query: ChatQuery(messages: [], model: "endpoint-policy-test-model"),
+                    url: url,
+                    apiKey: "credential-canary",
+                    onResult: { _ in Issue.record("An unsafe endpoint must not produce a stream result.") }
+                )
+            }
+            #expect(EndpointProbeURLProtocol.requestCount == 0)
+        }
+    }
+
+    @Test(
+        "Stops unsafe 307 and 308 redirects before a credential-bearing second request",
+        arguments: [false, true]
+    )
+    func blocksUnsafeRedirectRequests(useOpenAIStream: Bool) async throws {
         let originalURL = try #require(URL(string: "http://localhost:65532/v1/start"))
         let targets = [
             (307, "http://api.redirect-target.invalid/capture"),
@@ -191,10 +223,19 @@ struct ServiceEndpointSecurityPolicyTests {
             request.setValue("status-\(statusCode)", forHTTPHeaderField: "X-Redirect-Test")
 
             let requestTask = Task {
-                try await ServiceEndpointRequestSecurity.data(
-                    for: request,
-                    originalURL: originalURL
-                )
+                if useOpenAIStream {
+                    try await OpenAIStreamTransport().stream(
+                        query: ChatQuery(messages: [], model: "endpoint-policy-test-model"),
+                        url: originalURL,
+                        apiKey: "credential-canary",
+                        onResult: { _ in Issue.record("A cross-origin redirect must not produce a stream result.") }
+                    )
+                } else {
+                    _ = try await ServiceEndpointRequestSecurity.data(
+                        for: request,
+                        originalURL: originalURL
+                    )
+                }
             }
             let redirectIssued = await EndpointProbeURLProtocol.waitForRedirect(from: originalURL)
             let targetReached = await EndpointProbeURLProtocol.waitForRequest(to: targetURL)
@@ -237,6 +278,43 @@ struct ServiceEndpointSecurityPolicyTests {
         #expect(EndpointProbeURLProtocol.body(for: targetURL) == Data("body-canary".utf8))
         #expect(redirectedRequest.value(forHTTPHeaderField: "Authorization") == "Bearer credential-canary")
         #expect(redirectedRequest.value(forHTTPHeaderField: "api-key") == "credential-canary")
+    }
+
+    @Test("OpenAI streaming follows same-origin redirects without dropping request credentials")
+    func followsSameOriginOpenAIStreamRedirect() async throws {
+        let originalURL = try #require(URL(string: "http://localhost:65530/v1/start"))
+        let targetURL = try #require(URL(string: "http://localhost:65530/v1/final"))
+        let event = #"{"id":"redirect-test","object":"chat.completion.chunk","created":1,"model":"endpoint-policy-test-model","choices":[{"index":0,"delta":{"content":"redirected-stream-answer"},"finish_reason":null}]}"#
+        EndpointProbeURLProtocol.configureRedirect(
+            from: originalURL,
+            to: targetURL,
+            statusCode: 307,
+            targetBody: Data("data: \(event)\n\ndata: [DONE]\n\n".utf8),
+            targetContentType: "text/event-stream"
+        )
+        #expect(URLProtocol.registerClass(EndpointProbeURLProtocol.self))
+        defer { URLProtocol.unregisterClass(EndpointProbeURLProtocol.self) }
+
+        try await confirmation("Decodes exactly one redirected stream event") { received in
+            try await OpenAIStreamTransport().stream(
+                query: ChatQuery(messages: [], model: "endpoint-policy-test-model"),
+                url: originalURL,
+                apiKey: "credential-canary"
+            ) { result in
+                #expect(result.choices.first?.delta.content == "redirected-stream-answer")
+                received()
+            }
+        }
+
+        #expect(EndpointProbeURLProtocol.requestCount == 2)
+        let redirectedRequest = try #require(EndpointProbeURLProtocol.requests(for: targetURL).first)
+        #expect(redirectedRequest.httpMethod == "POST")
+        #expect(redirectedRequest.value(forHTTPHeaderField: "Authorization") == "Bearer credential-canary")
+        #expect(redirectedRequest.value(forHTTPHeaderField: "api-key") == "credential-canary")
+        let body = try #require(EndpointProbeURLProtocol.body(for: targetURL))
+        let payload = try #require(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        #expect(payload["model"] as? String == "endpoint-policy-test-model")
+        #expect(payload["stream"] as? Bool == true)
     }
 
     @Test("Rejects one remote HTTP input across UI, scheme, restore, and request sinks")
@@ -527,6 +605,7 @@ private final class EndpointProbeURLProtocol: URLProtocol, @unchecked Sendable {
         Self.requests.append(request)
         let redirect = request.url.flatMap { Self.redirects[$0.absoluteString] }
         let responseBody = request.url.flatMap { Self.responseBodies[$0.absoluteString] }
+        let contentType = request.url.flatMap { Self.responseContentTypes[$0.absoluteString] }
         if redirect != nil, let requestURL = request.url {
             Self.issuedRedirectURLs.insert(requestURL.absoluteString)
         }
@@ -561,7 +640,7 @@ private final class EndpointProbeURLProtocol: URLProtocol, @unchecked Sendable {
                   url: url,
                   statusCode: responseBody == nil ? 503 : 200,
                   httpVersion: "HTTP/1.1",
-                  headerFields: ["Content-Type": "application/json"]
+                  headerFields: ["Content-Type": contentType ?? "application/json"]
               )
         else {
             client?.urlProtocol(self, didFailWithError: URLError(.badURL))
@@ -613,6 +692,7 @@ private final class EndpointProbeURLProtocol: URLProtocol, @unchecked Sendable {
         requests = []
         redirects = [:]
         responseBodies = [:]
+        responseContentTypes = [:]
         requestBodies = [:]
         issuedRedirectURLs = []
         lock.unlock()
@@ -622,7 +702,8 @@ private final class EndpointProbeURLProtocol: URLProtocol, @unchecked Sendable {
         from originalURL: URL,
         to targetURL: URL,
         statusCode: Int,
-        targetBody: Data
+        targetBody: Data,
+        targetContentType: String = "application/json"
     ) {
         lock.lock()
         matchingURLs = [originalURL.absoluteString, targetURL.absoluteString]
@@ -634,6 +715,7 @@ private final class EndpointProbeURLProtocol: URLProtocol, @unchecked Sendable {
             ),
         ]
         responseBodies = [targetURL.absoluteString: targetBody]
+        responseContentTypes = [targetURL.absoluteString: targetContentType]
         requestBodies = [:]
         issuedRedirectURLs = []
         lock.unlock()
@@ -651,6 +733,7 @@ private final class EndpointProbeURLProtocol: URLProtocol, @unchecked Sendable {
     nonisolated(unsafe) private static var requests = [URLRequest]()
     nonisolated(unsafe) private static var redirects = [String: Redirect]()
     nonisolated(unsafe) private static var responseBodies = [String: Data]()
+    nonisolated(unsafe) private static var responseContentTypes = [String: String]()
     nonisolated(unsafe) private static var requestBodies = [String: Data]()
     nonisolated(unsafe) private static var issuedRedirectURLs = Set<String>()
 

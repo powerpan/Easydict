@@ -129,7 +129,8 @@ enum ServiceEndpointRequestSecurity {
 
     static func bytes(
         for request: URLRequest,
-        originalURL: URL
+        originalURL: URL,
+        session: URLSession = .shared
     ) async throws
         -> (URLSession.AsyncBytes, URLResponse) {
         guard let requestURL = request.url,
@@ -140,7 +141,7 @@ enum ServiceEndpointRequestSecurity {
         else {
             throw ServiceEndpointSecurityError.disallowedEndpoint
         }
-        return try await URLSession.shared.bytes(
+        return try await session.bytes(
             for: request,
             delegate: ServiceEndpointRedirectDelegate(originalURL: originalURL)
         )
