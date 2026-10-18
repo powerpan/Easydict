@@ -180,6 +180,29 @@ public class QueryError: NSError, LocalizedError, AbortError, @unchecked Sendabl
     }
 }
 
+// MARK: - Provider Error Body
+
+extension QueryError {
+    /// Extracts a readable message from a provider's non-2xx response body.
+    ///
+    /// Prefers the OpenAI-compatible `{"error": {"message": ...}}` shape, then a top-level
+    /// `error` or `message` string, and finally the trimmed raw body limited to 300 characters.
+    static func providerErrorMessage(from body: Data) -> String? {
+        if let json = try? JSONSerialization.jsonObject(with: body) as? [String: Any] {
+            let nestedMessage = (json["error"] as? [String: Any])?["message"] as? String
+            let candidates = [nestedMessage, json["error"] as? String, json["message"] as? String]
+            if let message = candidates.compactMap({ $0?.trim() }).first(where: { !$0.isEmpty }) {
+                return message
+            }
+        }
+
+        guard let text = String(data: body, encoding: .utf8)?.trim(), !text.isEmpty else {
+            return nil
+        }
+        return String(text.prefix(300))
+    }
+}
+
 // MARK: - Vapor AbortError
 
 extension QueryError {
