@@ -189,8 +189,8 @@ struct TextReplacementServiceTests {
         )
     }
 
-    @Test("Empty additional requirements keep the default action prompts")
-    func emptyAdditionalRequirementsKeepDefaultPrompts() {
+    @Test("Empty additional requirements retain the original request and enforce output-only replies")
+    func emptyAdditionalRequirementsKeepDefaultPrompts() throws {
         let service = isolatedCustomOpenAIService()
         let query = sampleQuery()
 
@@ -206,10 +206,22 @@ struct TextReplacementServiceTests {
         )
         let polishingMessages = service.chatMessageDicts(query)
 
-        #expect(messageRoles(translationMessages) == messageRoles(service.translationMessages(query)))
-        #expect(messageContents(translationMessages) == messageContents(service.translationMessages(query)))
-        #expect(messageRoles(polishingMessages) == messageRoles(service.polishingMessages(query)))
-        #expect(messageContents(polishingMessages) == messageContents(service.polishingMessages(query)))
+        for (messages, baseline, resultName) in [
+            (translationMessages, service.translationMessages(query), "translated text"),
+            (polishingMessages, service.polishingMessages(query), "polished text"),
+        ] {
+            let request = try #require(messages.last)
+            let originalRequest = try #require(baseline.last)
+
+            #expect(messages.count == baseline.count)
+            #expect(messageRoles(messages) == messageRoles(baseline))
+            #expect(messageContents(Array(messages.dropLast())) == messageContents(Array(baseline.dropLast())))
+            #expect(request.role == .user)
+            #expect(request.content.hasPrefix(originalRequest.content + "\n\n"))
+            #expect(request.content.contains(query.text))
+            #expect(request.content.contains("Output only the \(resultName) itself"))
+            #expect(!request.content.contains("<additional_requirements>"))
+        }
     }
 
     @Test("Non-empty additional requirements append without replacing the default prompt")
@@ -223,13 +235,20 @@ struct TextReplacementServiceTests {
         )
 
         let messages = service.chatMessageDicts(query)
-        let appendedMessage = try #require(messages.last)
+        let request = try #require(messages.last)
+        let originalRequest = try #require(baseline.last)
 
-        #expect(messageRoles(Array(messages.dropLast())) == messageRoles(baseline))
-        #expect(messageContents(Array(messages.dropLast())) == messageContents(baseline))
-        #expect(appendedMessage.role == .user)
-        #expect(appendedMessage.content.contains("Prefer concise product terminology."))
-        #expect(appendedMessage.content.contains("Additional requirements"))
+        #expect(messages.count == baseline.count)
+        #expect(messageRoles(messages) == messageRoles(baseline))
+        #expect(messageContents(Array(messages.dropLast())) == messageContents(Array(baseline.dropLast())))
+        #expect(request.role == .user)
+        #expect(request.content.hasPrefix(originalRequest.content + "\n\n"))
+        #expect(request.content.contains(query.text))
+        #expect(request.content.contains("Output only the translated text itself"))
+        #expect(request.content.contains("Additional requirements supplement and do not replace the task above"))
+        #expect(request.content
+            .contains("<additional_requirements>\nPrefer concise product terminology.\n</additional_requirements>"))
+        #expect(request.content.components(separatedBy: "Prefer concise product terminology.").count == 2)
     }
 
     @Test("Replacement prompts take precedence over a service global custom prompt")

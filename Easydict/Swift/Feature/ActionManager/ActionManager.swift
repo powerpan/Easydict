@@ -748,7 +748,10 @@ class ActionManager: NSObject {
             return TextReplacementStreamSource(
                 serviceType: serviceType,
                 model: model,
-                stream: stream,
+                stream: TextReplacementOutputSanitizer.sanitizing(
+                    stream,
+                    sourceText: request.text
+                ),
                 retainedService: service
             )
         } catch {
