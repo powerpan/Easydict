@@ -16,8 +16,10 @@ import Foundation
 /// holds back the response head until a leading `<think>` block, preamble such as
 /// "Okay, here is the translation:", or wrapper (code fence, triple quotes, quotes) can be ruled
 /// out, and holds back trailing whitespace or a candidate closing delimiter until the stream
-/// ends. Each rule is skipped when the source text itself starts the same way, so genuine
-/// content such as a translated "Note:" heading or a quoted sentence is preserved.
+/// ends. The head is re-evaluated as a whole on every chunk and only resolved once no rule can
+/// still match, so the result does not depend on chunk boundaries. Each rule is skipped when the
+/// source text itself starts the same way, so genuine content such as a translated "Note:"
+/// heading or a quoted sentence is preserved.
 struct TextReplacementOutputSanitizer {
     // MARK: Lifecycle
 
@@ -30,8 +32,7 @@ struct TextReplacementOutputSanitizer {
         self.preservesLeadingWhitespace = sourceText.first?.isWhitespace ?? false
         self.preservesTrailingWhitespace = sourceText.last?.isWhitespace ?? false
         self.allowsPreambleRemoval = !firstLine.contains { $0 == ":" || $0 == "：" } &&
-            !Self.mentionsResult(firstLine) &&
-            Self.matchLength(of: Self.acknowledgementLineRegex, in: firstLine) == nil
+            !Self.mentionsResult(firstLine)
     }
 
     // MARK: Internal
@@ -111,6 +112,8 @@ struct TextReplacementOutputSanitizer {
         "『": "』",
     ]
 
+    /// Acknowledgements are only removed together with a following introduction line, never on
+    /// their own, because a translated "Of course!" line is indistinguishable from chatter.
     private static let acknowledgementTokens = [
         "okay", "ok", "sure", "certainly", "of course", "alright", "all right", "got it",
         "no problem", "好的", "好", "当然", "當然", "没问题", "沒問題", "明白", "收到",
@@ -123,9 +126,6 @@ struct TextReplacementOutputSanitizer {
         "翻译", "翻譯", "译文", "譯文", "润色", "潤色", "修改后", "修改後", "优化后", "優化後",
     ]
 
-    /// Lowercased tokens a preamble can start with; anything else is streamed immediately.
-    private static let leadTokens = acknowledgementTokens + introductionTokens
-
     /// An introduction line is only a preamble when it names the result, so translated content
     /// such as "Here are my suggestions:" keeps its first line.
     private static let resultKeywords = [
@@ -133,21 +133,14 @@ struct TextReplacementOutputSanitizer {
         "譯文", "译为", "譯為", "润色", "潤色", "修改后", "修改後", "优化后", "優化後",
     ]
 
-    private static let separatorClass = "[\\s,，.。!！~～]*"
+    /// Matches a leading acknowledgement and the separators after it, including line breaks.
+    private static let acknowledgementRegex = makeRegex(
+        "^(?:\(alternation(acknowledgementTokens)))[\\s,，.。!！~～]*"
+    )
 
-    /// Matches an introduction line that ends with a colon, optionally after an acknowledgement.
+    /// Matches an introduction line that ends with a colon, plus the whitespace after it.
     private static let introductionRegex = makeRegex(
-        "^(?:(?:\(alternation(acknowledgementTokens)))\(separatorClass))?" +
-            "(?:\(alternation(introductionTokens)))[^\\n:：]{0,80}[:：]\\s*"
-    )
-
-    /// Matches a line that contains only an acknowledgement such as "Sure!".
-    private static let acknowledgementOnlyRegex = makeRegex(
-        "^(?:\(alternation(acknowledgementTokens)))[ \\t,，.。!！~～]*\\n\\s*"
-    )
-
-    private static let acknowledgementLineRegex = makeRegex(
-        "^(?:\(alternation(acknowledgementTokens)))\(separatorClass)$"
+        "^(?:\(alternation(introductionTokens)))[^\\n:：]{0,80}[:：]\\s*"
     )
 
     private let sourceStart: String
@@ -170,7 +163,7 @@ struct TextReplacementOutputSanitizer {
 
     private static func makeRegex(_ pattern: String) -> NSRegularExpression {
         // Patterns are built from static tokens, so a failure is a programming error.
-        try!NSRegularExpression(pattern: pattern, options: [.caseInsensitive])
+        try! NSRegularExpression(pattern: pattern, options: [.caseInsensitive])
     }
 
     private static func mentionsResult(_ text: String) -> Bool {
@@ -189,6 +182,11 @@ struct TextReplacementOutputSanitizer {
         return text.distance(from: text.startIndex, to: matchRange.upperBound)
     }
 
+    /// Whether `index` is a trailing lone carriage return that may still join a following "\n".
+    private static func mayContinueLineBreak(_ text: Substring, at index: Substring.Index) -> Bool {
+        text[index] == "\r" && text.index(after: index) == text.endIndex
+    }
+
     // MARK: Head
 
     /// Decides how the buffered head starts, or returns nil while more output is needed.
@@ -198,45 +196,48 @@ struct TextReplacementOutputSanitizer {
         rest = rest.dropFirst(leadingWhitespace.count)
         var didStrip = false
 
-        while rest.hasPrefix(Self.thinkOpenTag) {
-            guard let closeRange = rest.range(of: Self.thinkCloseTag) else {
-                return isFinal ? HeadResolution(body: "") : nil
+        // Keep stripping `<think>` blocks and preambles until neither applies.
+        stripping: while true {
+            if rest.hasPrefix(Self.thinkOpenTag) {
+                guard let closeRange = rest.range(of: Self.thinkCloseTag) else {
+                    return isFinal ? HeadResolution(body: "") : nil
+                }
+                rest = rest[closeRange.upperBound...].drop { $0.isWhitespace }
+                didStrip = true
+                continue
             }
-            rest = rest[closeRange.upperBound...].drop { $0.isWhitespace }
-            didStrip = true
-        }
-        if !isFinal, Self.thinkOpenTag.hasPrefix(rest) {
-            return nil
-        }
+            // Covers an empty head, which can always still grow into a `<think>` tag.
+            if !isFinal, Self.thinkOpenTag.hasPrefix(rest) {
+                return nil
+            }
+            guard allowsPreambleRemoval else { break }
 
-        if allowsPreambleRemoval {
             switch preambleMatch(in: rest, isFinal: isFinal) {
             case .undecided:
                 return nil
             case let .matched(length):
                 rest = rest.dropFirst(length).drop { $0.isWhitespace }
                 didStrip = true
-                if rest.isEmpty, !isFinal {
-                    return nil
-                }
             case .none:
-                break
+                break stripping
             }
         }
 
         if !sourceStart.hasPrefix(Self.fence) {
             if rest.hasPrefix(Self.fence) {
-                if let newlineIndex = rest.firstIndex(where: \.isNewline) {
-                    rest = rest[rest.index(after: newlineIndex)...]
+                // The opening fence line, including any language tag, is dropped with its line
+                // break; the content keeps its own indentation.
+                if let lineBreak = rest.firstIndex(where: \.isNewline) {
+                    if !isFinal, Self.mayContinueLineBreak(rest, at: lineBreak) {
+                        return nil
+                    }
+                    rest = rest[rest.index(after: lineBreak)...]
                 } else if isFinal || rest.count >= Self.maxHeadLength {
                     rest = rest.dropFirst(Self.fence.count)
                 } else {
                     return nil
                 }
-                return HeadResolution(
-                    body: String(rest.drop { $0.isWhitespace }),
-                    closingDelimiter: Self.fence
-                )
+                return HeadResolution(body: String(rest), closingDelimiter: Self.fence)
             }
             if !isFinal, Self.fence.hasPrefix(rest) {
                 return nil
@@ -245,10 +246,17 @@ struct TextReplacementOutputSanitizer {
 
         if !sourceStart.hasPrefix(Self.tripleQuote) {
             if rest.hasPrefix(Self.tripleQuote) {
-                return HeadResolution(
-                    body: String(rest.dropFirst(Self.tripleQuote.count).drop { $0.isWhitespace }),
-                    closingDelimiter: Self.tripleQuote
-                )
+                var body = rest.dropFirst(Self.tripleQuote.count)
+                if let first = body.first, first.isNewline {
+                    if !isFinal, Self.mayContinueLineBreak(body, at: body.startIndex) {
+                        return nil
+                    }
+                    body = body.dropFirst()
+                } else if body.isEmpty, !isFinal {
+                    // Wait to see whether the delimiter is followed by its own line break.
+                    return nil
+                }
+                return HeadResolution(body: String(body), closingDelimiter: Self.tripleQuote)
             }
             if !isFinal, Self.tripleQuote.hasPrefix(rest) {
                 return nil
@@ -265,24 +273,36 @@ struct TextReplacementOutputSanitizer {
         return HeadResolution(body: (keepsLeadingWhitespace ? String(leadingWhitespace) : "") + rest)
     }
 
+    /// Matches an optional acknowledgement followed by an introduction line that names the result.
     private func preambleMatch(in rest: Substring, isFinal: Bool) -> PreambleMatch {
         let text = String(rest)
         let lowercasedText = text.lowercased()
-        let mayStartPreamble = Self.leadTokens.contains {
-            lowercasedText.hasPrefix($0) || $0.hasPrefix(lowercasedText)
-        }
-        guard mayStartPreamble else { return .none }
 
-        for regex in [Self.introductionRegex, Self.acknowledgementOnlyRegex] {
-            guard let length = Self.matchLength(of: regex, in: text) else { continue }
-            if regex === Self.introductionRegex, !Self.mentionsResult(String(text.prefix(length))) {
-                continue
-            }
+        // Wait while the head could still grow into a longer acknowledgement ("Ok" -> "Okay").
+        if !isFinal, Self.acknowledgementTokens.contains(where: { $0.hasPrefix(lowercasedText) }) {
+            return .undecided
+        }
+
+        let acknowledgementLength = Self.matchLength(of: Self.acknowledgementRegex, in: text) ?? 0
+        let remainder = String(text.dropFirst(acknowledgementLength))
+        if remainder.isEmpty {
+            return isFinal ? .none : .undecided
+        }
+
+        let lowercasedRemainder = remainder.lowercased()
+        let mayStartIntroduction = Self.introductionTokens.contains {
+            lowercasedRemainder.hasPrefix($0) || $0.hasPrefix(lowercasedRemainder)
+        }
+        guard mayStartIntroduction else { return .none }
+
+        if let introductionLength = Self.matchLength(of: Self.introductionRegex, in: remainder) {
+            let length = acknowledgementLength + introductionLength
+            guard Self.mentionsResult(String(text.prefix(length))) else { return .none }
             // Trailing whitespace may continue in the next chunk, so wait for real content.
             return length < text.count || isFinal ? .matched(length: length) : .undecided
         }
 
-        let isDecided = isFinal || text.contains(where: \.isNewline) ||
+        let isDecided = isFinal || remainder.contains(where: \.isNewline) ||
             text.count >= Self.maxHeadLength
         return isDecided ? .none : .undecided
     }
@@ -317,30 +337,33 @@ struct TextReplacementOutputSanitizer {
         return String(combined[..<splitIndex])
     }
 
+    /// Drops a closing delimiter, then applies the same trailing whitespace rule as unwrapped output.
     private mutating func finishBody() -> String {
-        let whitespaceStart = Self.trailingWhitespaceStart(in: pending)
-        var content = String(pending[..<whitespaceStart])
-        let trailingWhitespace = String(pending[whitespaceStart...])
-
-        if let closingDelimiter, content.hasSuffix(closingDelimiter) {
-            content.removeLast(closingDelimiter.count)
-            return String(content[..<Self.trailingWhitespaceStart(in: content)])
+        var content = pending
+        if let closingDelimiter {
+            let core = content[..<Self.trailingWhitespaceStart(in: content)]
+            if core.hasSuffix(closingDelimiter) {
+                content = String(core.dropLast(closingDelimiter.count))
+            }
         }
-        return content + (preservesTrailingWhitespace ? trailingWhitespace : "")
+        return applyingTrailingWhitespaceRule(to: content)
     }
 
     private func finishBufferedQuote(open: Character, close: Character) -> String {
-        let whitespaceStart = Self.trailingWhitespaceStart(in: pending)
-        var content = String(pending[..<whitespaceStart])
-        let trailingWhitespace = String(pending[whitespaceStart...])
-
-        if content.count >= 2, content.first == open, content.last == close {
-            let inner = content.dropFirst().dropLast()
+        var content = pending
+        let core = content[..<Self.trailingWhitespaceStart(in: content)]
+        if core.count >= 2, core.first == open, core.last == close {
+            let inner = core.dropFirst().dropLast()
             if !inner.contains(open), !inner.contains(close) {
-                content = inner.trimmingCharacters(in: .whitespacesAndNewlines)
+                content = String(inner)
             }
         }
-        return content + (preservesTrailingWhitespace ? trailingWhitespace : "")
+        return applyingTrailingWhitespaceRule(to: content)
+    }
+
+    /// Keeps trailing whitespace only when the source text also ends with whitespace.
+    private func applyingTrailingWhitespaceRule(to text: String) -> String {
+        preservesTrailingWhitespace ? text : String(text[..<Self.trailingWhitespaceStart(in: text)])
     }
 
     private static func trailingWhitespaceStart<S: StringProtocol>(in text: S) -> String.Index {
