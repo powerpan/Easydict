@@ -533,7 +533,7 @@ class BingRequest {
             encoding: encoding,
             headers: headers,
             requestModifier: { request in
-                request.timeoutInterval = EZNetWorkTimeoutInterval
+                request.timeoutInterval = AppConstants.networkTimeoutInterval
             }
         )
         .validate(statusCode: 200 ..< 300)
@@ -544,7 +544,7 @@ class BingRequest {
 
     private func requestHeaders(includeCookie: Bool = false) -> HTTPHeaders {
         var headers = HTTPHeaders([
-            "User-Agent": EZUserAgent,
+            "User-Agent": AppConstants.userAgent,
         ])
 
         if includeCookie, !bingConfig.cookie.isEmpty {

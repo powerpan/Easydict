@@ -492,7 +492,7 @@ public class StreamService: QueryService {
             url,
             method: .get,
             headers: headers,
-            requestModifier: { $0.timeoutInterval = EZNetWorkTimeoutInterval }
+            requestModifier: { $0.timeoutInterval = AppConstants.networkTimeoutInterval }
         )
         .redirect(using: ServiceEndpointRequestSecurity.alamofireRedirector(for: url))
         .serializingData(automaticallyCancelling: true)

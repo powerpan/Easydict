@@ -170,7 +170,7 @@ class DeepSeekService: OpenAIService, ContextualQuestionStreaming {
         )
 
         var request = URLRequest(
-            url: url, timeoutInterval: SharedConstants.llmRequestTimeoutInterval
+            url: url, timeoutInterval: AppConstants.llmRequestTimeoutInterval
         )
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
