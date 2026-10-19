@@ -150,7 +150,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : ""
+            "value" : "对齐错误"
           }
         },
         "zh-Hant" : {
@@ -1139,7 +1139,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : ""
+            "value" : "缓冲区过小"
           }
         },
         "zh-Hant" : {
@@ -1938,7 +1938,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : ""
+            "value" : "解码错误"
           }
         },
         "zh-Hant" : {
@@ -3282,7 +3282,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : ""
+            "value" : "Easydict"
           }
         },
         "zh-Hant" : {
@@ -3316,7 +3316,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : ""
+            "value" : "Easydict 🍃"
           }
         },
         "zh-Hant" : {
@@ -3665,7 +3665,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : ""
+            "value" : "无法分配内存"
           }
         },
         "zh-Hant" : {
@@ -4181,7 +4181,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : ""
+            "value" : "当前算法未实现此功能"
           }
         },
         "zh-Hant" : {
@@ -4813,7 +4813,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : ""
+            "value" : "提供给加密/解密算法的参数无效"
           }
         },
         "zh-Hant" : {
@@ -4848,7 +4848,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : ""
+            "value" : "输入数据无法正确解码或解密"
           }
         },
         "zh-Hant" : {
@@ -4883,7 +4883,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : ""
+            "value" : "输入到加密算法的数据大小未正确对齐"
           }
         },
         "zh-Hant" : {
@@ -4918,7 +4918,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : ""
+            "value" : "为指定操作提供的缓冲区不足"
           }
         },
         "zh-Hant" : {
@@ -7520,7 +7520,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : ""
+            "value" : "内存故障"
           }
         },
         "zh-Hant" : {
@@ -8385,6 +8385,12 @@
     },
     "none_window" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No window"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8406,7 +8412,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : ""
+            "value" : "无窗口"
           }
         },
         "zh-Hant" : {
@@ -8842,7 +8848,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : ""
+            "value" : "参数错误"
           }
         },
         "zh-Hant" : {
@@ -19729,7 +19735,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : ""
+            "value" : "成功"
           }
         },
         "zh-Hant" : {
@@ -21966,7 +21972,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : ""
+            "value" : "未实现的功能"
           }
         },
         "zh-Hant" : {
@@ -22001,7 +22007,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : ""
+            "value" : "未知错误"
           }
         },
         "zh-Hant" : {
@@ -22054,6 +22060,12 @@
     },
     "unknown_option" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown option"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22075,7 +22087,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : ""
+            "value" : "未知选项"
           }
         },
         "zh-Hant" : {
