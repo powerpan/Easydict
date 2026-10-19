@@ -138,7 +138,7 @@ class DeepSeekService: OpenAIService, ContextualQuestionStreaming {
                         for: request,
                         originalURL: url
                     )
-                    try validateHTTPResponse(response)
+                    try await validateHTTPResponse(response, asyncBytes: asyncBytes)
                     try await processStreamBytes(asyncBytes, continuation: continuation)
                     continuation.finish()
                 } catch is CancellationError {
@@ -179,14 +179,26 @@ class DeepSeekService: OpenAIService, ContextualQuestionStreaming {
         return request
     }
 
-    private func validateHTTPResponse(_ response: URLResponse) throws {
+    /// Reads a bounded error body so DeepSeek's own message, such as "Insufficient Balance",
+    /// reaches the user instead of a bare status code.
+    private func validateHTTPResponse(
+        _ response: URLResponse,
+        asyncBytes: URLSession.AsyncBytes
+    ) async throws {
         guard let httpResponse = response as? HTTPURLResponse else {
             throw QueryError(type: .api, message: "Invalid DeepSeek response")
         }
 
-        guard (200 ... 299).contains(httpResponse.statusCode) else {
-            throw QueryError(type: .api, message: "HTTP \(httpResponse.statusCode)")
+        guard !(200 ... 299).contains(httpResponse.statusCode) else {
+            return
         }
+
+        let errorData = try await asyncBytes.prefix(4096).reduce(into: Data()) { $0.append($1) }
+        throw QueryError(
+            type: .api,
+            message: "HTTP \(httpResponse.statusCode)",
+            errorDataMessage: QueryError.providerErrorMessage(from: errorData)
+        )
     }
 
     private func processStreamBytes(

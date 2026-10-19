@@ -108,7 +108,7 @@ public final class DoubaoService: StreamService {
                     let urlRequest = try createURLRequest(body: requestBody)
 
                     let (asyncBytes, response) = try await URLSession.shared.bytes(for: urlRequest)
-                    try validateHTTPResponse(response)
+                    try await validateHTTPResponse(response, asyncBytes: asyncBytes)
 
                     try await processStreamBytes(asyncBytes, continuation: continuation)
                     continuation.finish()
@@ -208,9 +208,14 @@ public final class DoubaoService: StreamService {
     }
 
     /// Validates HTTP response status
-    /// - Parameter response: The URLResponse to validate
+    /// - Parameters:
+    ///   - response: The URLResponse to validate
+    ///   - asyncBytes: The response body, read only on failure so the provider's message is shown
     /// - Throws: QueryError if response is not HTTPURLResponse or status code is not in 200-299 range
-    private func validateHTTPResponse(_ response: URLResponse) throws {
+    private func validateHTTPResponse(
+        _ response: URLResponse,
+        asyncBytes: URLSession.AsyncBytes
+    ) async throws {
         guard let httpResponse = response as? HTTPURLResponse else {
             throw QueryError(
                 type: .api,
@@ -229,7 +234,12 @@ public final class DoubaoService: StreamService {
                 ),
                 httpResponse.statusCode
             )
-            throw QueryError(type: .api, message: errorMessage)
+            let errorData = try await asyncBytes.prefix(4096).reduce(into: Data()) { $0.append($1) }
+            throw QueryError(
+                type: .api,
+                message: errorMessage,
+                errorDataMessage: QueryError.providerErrorMessage(from: errorData)
+            )
         }
     }
 
